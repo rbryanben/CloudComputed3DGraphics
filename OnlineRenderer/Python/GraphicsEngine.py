@@ -5,7 +5,6 @@ from tkinter.messagebox import RETRY
 from turtle import window_width
 import pygame
 from math import sqrt, tan,cos,sin
-from numba import njit
 
 class vec3d:
     def __init__(self,matrix=None):
@@ -132,7 +131,7 @@ class olcEngine3d:
 
         #load mesh 
         self.meshCube = mesh()
-        self.meshCube.LoadFromObjectFile("./objs/mountains.obj")
+        self.meshCube.LoadFromObjectFile("./objs/plane.obj")
 
 
     def drawTriangle(self,tri: triangle,color):
@@ -144,7 +143,7 @@ class olcEngine3d:
         
     def onUserUpdate(self):
         self.window.fill(self.black)
-        self.angle = 3.142
+        self.angle = 0
 
         # Rotations 
         rotationZ = Matrix_MakeRotationZ(self.angle)
