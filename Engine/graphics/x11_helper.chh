@@ -1,0 +1,75 @@
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/XKBlib.h>
+#include <X11/Xatom.h>
+#include <stdio.h>
+#include <err.h>
+
+
+// Display, Screen and the window 
+static Display* dpy;
+static int scr;
+static Window root;
+
+
+/*
+
+    Creates  a window 
+*/
+Window create_win(int posX,int posY,int width,int height, int border){
+    Window win;
+    XSetWindowAttributes xwa;
+    xwa.background_pixel = BlackPixel(dpy,scr);
+    xwa.border_pixel = WhitePixel(dpy,scr);
+    xwa.event_mask = Button1MotionMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask;
+
+    return XCreateWindow(dpy,root,posX,posY,width,height,border,DefaultDepth(dpy,scr),InputOutput,DefaultVisual(dpy,scr),
+        CWBackPixel | CWBorderPixel | CWEventMask,&xwa);
+}
+
+unsigned long _RGB(int r, int g, int b){
+    return b + (g<<8) + (r<<16);
+}
+
+GC create_gc(int lineWidth){
+    GC gc;
+    XGCValues xgcv;
+    xgcv.line_style = LineSolid;
+    xgcv.line_width = lineWidth;
+    xgcv.cap_style = CapButt;
+    xgcv.join_style = JoinMiter;
+    xgcv.fill_style = FillSolid;
+    xgcv.foreground = _RGB(255,0,127);
+    xgcv.background = WhitePixel(dpy,scr);
+
+    long valuemask = GCForeground | GCBackground | GCFillStyle | GCLineStyle | GCLineWidth | GCCapStyle | GCJoinStyle;
+    gc = XCreateGC(dpy,root,valuemask,&xgcv);
+    return gc;
+}
+
+GC simple_gc(long color){
+    GC gc;
+    XGCValues xgcv;
+    xgcv.line_style = LineSolid;
+    xgcv.line_width = 1;
+    xgcv.cap_style = CapButt;
+    xgcv.join_style = JoinMiter;
+    xgcv.fill_style = FillSolid;
+    xgcv.foreground = color;
+    xgcv.background = WhitePixel(dpy,scr);
+    long valuemask = GCForeground | GCBackground | GCFillStyle | GCLineStyle | GCLineWidth | GCCapStyle | GCJoinStyle;
+    gc = XCreateGC(dpy,root,valuemask,&xgcv);
+    return gc;
+}
+
+/*
+    Cleanup window 
+*/
+void cleanUpWindow(Window &win){
+    // Close Window and  Cleanup resoucerse 
+    XUnmapWindow(dpy,win);
+    XDestroyWindow(dpy,win);
+    XCloseDisplay(dpy);
+
+}
