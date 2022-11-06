@@ -14,7 +14,7 @@
 #include "PPA/image_loader.h"
 #include "utils/common.h"
 #include "utils/matrix_operations.h"
-
+#include "utils/sample_cube.h"
 
 
 // Variables 
@@ -35,7 +35,7 @@ class W3DGraphics {
         // Matrice
         Matrix4x4 projectionMatrix;
         // Vars 
-        float rotationAngle = 0.f;
+        float rotationAngle = 22/7  * 2;
         // Time
         std::chrono::steady_clock::time_point timeBegin;
 
@@ -103,6 +103,14 @@ class W3DGraphics {
             int x3 = tri.p[2].x;
             int y3 = tri.p[2].y;
 
+            //Sort Textures
+            int t1x = tri.t[0].u * this->texture.getWidth();
+            int t1y = tri.t[0].v * this->texture.getHeight();
+            int t2x = tri.t[1].u * this->texture.getWidth();
+            int t2y = tri.t[1].v * this->texture.getHeight();
+            int t3x = tri.t[2].u * this->texture.getWidth(); 
+            int t3y = tri.t[2].v * this->texture.getHeight();
+
 
             // Sort Points 
             if (y2 < y1){
@@ -120,10 +128,34 @@ class W3DGraphics {
                 swap(x3,x2);
             }
 
+            // Sort Textures 
+            if (t2y< t1y){
+                swap(t2y,t1y);
+                swap(t2x,t1x);
+            }
+
+            if (t3y< t1y){
+                swap(t3y,t1y);
+                swap(t3x,t1x);
+            }
+
+            if (t3y< t2y){
+                swap(t2y,t3y);
+                swap(t2x,t3x);
+            }
+
             // Texture Triangle 
             glBegin(GL_POINTS);
             glColor3f(1,0,0);
             // Top half 
+
+                // Vars 
+                float percentageY, percentageX;
+                int textureY, textureX;
+                // What percentage have we moved in the x 
+                int minX = min(x1,x2); minX = min(minX,x3);
+                int maxX = max(x1,x2); maxX = max(maxX,x3);
+
                 // Move from y1 to y2 
                 int ySteps = 0 ;
                 float y = y1;
@@ -144,9 +176,18 @@ class W3DGraphics {
                     xStart = min(xs_temp,xe_temp);
                     xEnd = max(xe_temp,xs_temp);
                     
+                    // Calculate texture y co-ordinate
+                    // What percentage have we moved in the y vertex
+                    percentageY = (float) (y - y1) / (y3 - y1);
+                    textureY =  this->texture.getHeight() * percentageY;
+
                     while (xStart <= xEnd){
+                        float percentageX = (float) (xStart - minX) / (maxX - minX);
+                        // Texture X
+                        int textureX = this->texture.getWidth() * percentageX;
+
                         // Texture
-                        RGB pixel = this->texture.getPixelAt(y,xStart);
+                        RGB pixel = this->texture.getPixelAt(textureY,textureX);
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         glVertex2i(xStart,y);
                         xStart++;
@@ -168,10 +209,21 @@ class W3DGraphics {
                     xStart = min(xs_temp,xe_temp);
                     xEnd = max(xe_temp,xs_temp);
                     
-                    glColor3f(0,1,0);
+                    // Calculate texture y co-ordinate
+                    // What percentage have we moved in the y vertex
+                    percentageY = (float) (y - y1) / (y3 - y1);
+                    textureY =  this->texture.getHeight() * percentageY;
+
+        
+                    
+
                     while (xStart <= xEnd){
+                        float percentageX = (float) (xStart - minX) / (maxX - minX);
+                        // Texture X
+                        int textureX = this->texture.getWidth() * percentageX;
+
                         // Texture
-                        RGB pixel = this->texture.getPixelAt(y,xStart);
+                        RGB pixel = this->texture.getPixelAt(textureY,textureX);
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         glVertex2i(xStart,y);
                         xStart++;
@@ -220,38 +272,7 @@ class W3DGraphics {
                 glVertex2f(tri.p[0].x,tri.p[0].y);
             glEnd();
         }
-        //Load from file 
-        bool loadFromObjectFile(string sFilename){
-            ifstream f(sFilename);
-            if (!f.is_open())
-                return false;
-
-            vector<Vect3d> verts;
-            vector<Triangle> tris;
-
-            while(!f.eof()){
-                char line[128];
-                f.getline(line,128);
-
-                strstream s;
-                s << line ;
-
-                char junk;
-                if (line[0] == 'v'){
-                    Vect3d v;
-                    s >> junk >> v.x >> v.y >> v.z;
-                    verts.push_back(v);
-                }
-
-                if (line[0] == 'f'){
-                    int f[3];
-                    s >> junk >> f[0] >> f[1] >> f[2];
-                    mesh.triangles.push_back({verts[f[0] - 1],verts[f[1] - 1],verts[f[2] - 1]});
-                }
-            }
-
-            return true;
-        }
+        
     public:
         
         // Texture Holder 
@@ -293,8 +314,9 @@ class W3DGraphics {
                 0.1f);
 
             // Load the texture 
-            this->texture = readPPM("./assets/ppm/wood.ppm");
-            this->loadFromObjectFile("./assets/objs/cube.obj");
+            this->texture = readPPM("./assets/ppm/sand.ppm");
+            this->mesh = getCube();
+
             // Set Black Background
             glClearColor(0,0, 0, 1); 
             glClear(GL_COLOR_BUFFER_BIT);
@@ -316,7 +338,9 @@ class W3DGraphics {
 
         // Called every time the window updates     
         bool onWindowUpdate(){
+            //this->rotationAngle = 0.55f + (float)22/7 * 2;
             this->rotationAngle += 0.001f;
+            //cout << rotationAngle << endl;
             // Render object
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
