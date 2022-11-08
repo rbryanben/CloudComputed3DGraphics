@@ -237,12 +237,15 @@ class W3DGraphics {
 
             glEnd();
             glBegin(GL_LINES);
-                glColor3f(1.f,0.f,0.f);
+                glColor3f(1,0,0);
                 glVertex2i(tri.p[0].x,tri.p[0].y);
                 glVertex2i(tri.p[1].x,tri.p[1].y);
+                glVertex2i(tri.p[1].x,tri.p[1].y);
+                glVertex2i(tri.p[2].x,tri.p[2].y);
                 glVertex2i(tri.p[2].x,tri.p[2].y);
                 glVertex2i(tri.p[0].x,tri.p[0].y);
             glEnd();
+
         }
         // Draws the texture ppm 
         void drawTexture(){
@@ -314,7 +317,7 @@ class W3DGraphics {
                 0.1f);
 
             // Load the texture 
-            this->texture = readPPM("./assets/ppm/sand.ppm");
+            this->texture = readPPM("./assets/objs/crate/crate.ppm");
             this->mesh = getCube();
 
             // Set Black Background
@@ -339,7 +342,8 @@ class W3DGraphics {
         // Called every time the window updates     
         bool onWindowUpdate(){
             //this->rotationAngle = 0.55f + (float)22/7 * 2;
-            this->rotationAngle += 0.001f;
+            this->rotationAngle = 2.015 * 3.124;
+            //this->rotationAngle = 2.1 * 3.124;
             //cout << rotationAngle << endl;
             // Render object
             // Final projected colors and triangles 
@@ -353,10 +357,16 @@ class W3DGraphics {
                 //  Geometry (Rotation and Translation)
                 matRotZ = getMatrixRotationZ(rotationAngle);
                 matRotX = getMatrixRotationX(rotationAngle);
+            
                 Matrix4x4 matTrans = Matrix_MakeTranslation(0.0f,0.0f,5.0f);
                 
                 Matrix4x4 matWorld = MatrixMultiplyMatrix(matRotZ,matRotX);
                 matWorld  = MatrixMultiplyMatrix(matWorld,matTrans);
+
+                // No matworld 
+                matWorld = Matrix4x4_MakeIdentity();
+                matRotX = getMatrixRotationX(rotationAngle);
+                matWorld = MatrixMultiplyMatrix(matRotX,matTrans);
 
                 triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
                 triTransformed.p[1] = MatrixMultiplyVector(matWorld,tri.p[1]);
