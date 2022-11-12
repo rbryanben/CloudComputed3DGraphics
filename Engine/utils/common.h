@@ -162,6 +162,11 @@ float f_max(float a,float b){
     return b;
 }
 
+float f_min(float a, float b){
+    if (a < b) return a;
+    return b;
+}
+
 
 // Cross Producut
 Vect3d VectorCrossProduct(Vect3d line1, Vect3d line2){

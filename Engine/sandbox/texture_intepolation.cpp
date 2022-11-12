@@ -134,6 +134,61 @@ void textureTriangle(Triangle tri){
         }
     }
 
+    dy1 = y3 - y2;
+		dx1 = x3 - x2;
+		dv1 = v3 - v2;
+		du1 = u3 - u2;
+
+
+		if (dy1) dax_step = dx1 / (float)abs(dy1);
+		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+		du1_step = 0, dv1_step = 0;
+		if (dy1) du1_step = du1 / (float)abs(dy1);
+		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+
+		if (dy1)
+		{
+			for (int i = y2; i <= y3; i++)
+			{
+				int ax = x2 + (float)(i - y2) * dax_step;
+				int bx = x1 + (float)(i - y1) * dbx_step;
+
+				float tex_su = u2 + (float)(i - y2) * du1_step;
+				float tex_sv = v2 + (float)(i - y2) * dv1_step;
+
+				float tex_eu = u1 + (float)(i - y1) * du2_step;
+				float tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+
+				if (ax > bx)
+				{
+					swap(ax, bx);
+					swap(tex_su, tex_eu);
+					swap(tex_sv, tex_ev);
+
+				}
+
+				tex_u = tex_su;
+				tex_v = tex_sv;
+
+
+				float tstep = 1.0f / ((float)(bx - ax));
+				float t = 0.0f;
+
+				for (int j = ax; j < bx; j++)
+				{
+					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+                    RGB pixel = texture.getPixelAt(tex_v * texture.getHeight(),tex_u * texture.getWidth());
+                    glColor3f(pixel.r,pixel.g,pixel.b);
+                    glVertex2i(j,i);
+
+					t += tstep;
+				}
+			}	
+		}		
     glEnd();
 
 
@@ -152,12 +207,12 @@ void textureTriangle(Triangle tri){
 // Display Function 
 void displayFunc(){
     // Create Triangle 
-    triangle_1.p[0] = {50,100,0};
+    triangle_1.p[0] = {100,100,0};
     triangle_1.p[1] = {250,250,0};
-    triangle_1.p[2] = {100,250,0,0};
+    triangle_1.p[2] = {250,50,0,0};
     triangle_1.t[0] = {0,0};
     triangle_1.t[1] = {1,1};
-    triangle_1.t[2] = {0,1};
+    triangle_1.t[2] = {1,0};
 
     //load texture
     texture = readPPM("../assets/objs/crate/crate.ppm");

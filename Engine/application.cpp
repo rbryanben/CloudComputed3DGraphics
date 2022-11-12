@@ -93,149 +93,199 @@ class W3DGraphics {
         }
 
         // Texture Triangle(2)
-        void texturedTriangle(Triangle &tri){
-            
+        void texturedTriangle(Triangle tri,bool colorRed=false){
+            glBegin(GL_LINES);
+                glVertex2i(tri.p[0].x,tri.p[0].y);
+                glVertex2i(tri.p[1].x,tri.p[1].y);
+                glVertex2i(tri.p[1].x,tri.p[1].y);
+                glVertex2i(tri.p[2].x,tri.p[2].y);
+                glVertex2i(tri.p[2].x,tri.p[2].y);
+                glVertex2i(tri.p[0].x,tri.p[0].y);
+            glEnd();
+
+            // 
+            glBegin(GL_POINTS);
+            glColor3f(1,1,0);
             // Points 
             int x1 = tri.p[0].x;
             int y1 = tri.p[0].y;
+            float u1 = tri.t[0].u;
+            float v1 = tri.t[0].v;
+
             int x2 = tri.p[1].x;
             int y2 = tri.p[1].y; 
+            float u2 = tri.t[1].u;
+            float v2 = tri.t[1].v;
+
             int x3 = tri.p[2].x;
             int y3 = tri.p[2].y;
-
-            //Sort Textures
-            int t1x = tri.t[0].u * this->texture.getWidth();
-            int t1y = tri.t[0].v * this->texture.getHeight();
-            int t2x = tri.t[1].u * this->texture.getWidth();
-            int t2y = tri.t[1].v * this->texture.getHeight();
-            int t3x = tri.t[2].u * this->texture.getWidth(); 
-            int t3y = tri.t[2].v * this->texture.getHeight();
+            float u3 = tri.t[2].u;
+            float v3 = tri.t[2].v;
 
 
             // Sort Points 
             if (y2 < y1){
                 swap(y2,y1);
                 swap(x2,x1);
+                swap(u2,u1);
+                swap(v2,v1);
             }
 
             if (y3 < y1){
                 swap(y3,y1);
                 swap(x3,x1);
+                swap(u3,u1);
+                swap(v3,v1);
             }
 
             if (y3 < y2){
                 swap(y3,y2);
                 swap(x3,x2);
+                swap(u3,u2);
+                swap(v3,v2);
             }
 
-            // Sort Textures 
-            if (t2y< t1y){
-                swap(t2y,t1y);
-                swap(t2x,t1x);
-            }
+            // Args 
+            int dy1 = y2 - y1 ;
+            int dx1 = x2 - x1 ;
+            float dv1 = v2 - v1;
+            float du1 = u2 - u1;
 
-            if (t3y< t1y){
-                swap(t3y,t1y);
-                swap(t3x,t1x);
-            }
+            int dy2 = y3 - y1;
+            int dx2 = x3 - x1;
+            float dv2 = v3 - v1;
+            float du2 = u3 - u1;
 
-            if (t3y< t2y){
-                swap(t2y,t3y);
-                swap(t2x,t3x);
-            }
 
-            // Texture Triangle 
-            glBegin(GL_POINTS);
-            glColor3f(1,0,0);
-            // Top half 
+            // Calculate dx_1 and dx_2 
+            float dax_step = 0, dbx_step = 0,
+                du1_step = 0, dv1_step = 0,
+                du2_step =0, dv2_step = 0 ;
 
-                // Vars 
-                float percentageY, percentageX;
-                int textureY, textureX;
-                // What percentage have we moved in the x 
-                int minX = min(x1,x2); minX = min(minX,x3);
-                int maxX = max(x1,x2); maxX = max(maxX,x3);
+            float tex_u,tex_v;
 
-                // Move from y1 to y2 
-                int ySteps = 0 ;
-                float y = y1;
-                int xStart = 0, xs_temp;
-                int xEnd = 0, xe_temp;
 
-                // dx/dy 
-                float A1_dx_dy = (float) (x1 - x3) / (y1 - y3);
-                float A2_dx_dy = (float) (x1 - x2) / (y1 - y2);
-                
-                if (!(y1 - y3) || !(x1 - x3)) A1_dx_dy = 0;
-                if (!(x1 - x2) || !(y1 - y2)) A2_dx_dy = 0;
-                while (y <= y2){
-                    // xStart is the min between the 2 x's, this is because if A2 is on the left side we wont draw anythins
-                    xs_temp = x1 + (ySteps * A1_dx_dy);
-                    xe_temp = x1 + (ySteps * A2_dx_dy);
-                    
-                    xStart = min(xs_temp,xe_temp);
-                    xEnd = max(xe_temp,xs_temp);
-                    
-                    // Calculate texture y co-ordinate
-                    // What percentage have we moved in the y vertex
-                    percentageY = (float) (y - y1) / (y3 - y1);
-                    textureY =  this->texture.getHeight() * percentageY;
+            // Calculate differentials 
+            if (dy1) dax_step = dx1 / (float)abs(dy1); //float absolutes 
+            if (dy2) dbx_step = dx2 / (float)abs(dy2);
 
-                    while (xStart <= xEnd){
-                        float percentageX = (float) (xStart - minX) / (maxX - minX);
-                        // Texture X
-                        int textureX = this->texture.getWidth() * percentageX;
+            if (dy1) dv1_step = dv1/  (float)abs(dy1);
+            if (dy2) du1_step = du1/ (float)abs(dy1);
 
-                        // Texture
-                        RGB pixel = this->texture.getPixelAt(textureY,textureX);
-                        glColor3f(pixel.r,pixel.g,pixel.b);
-                        glVertex2i(xStart,y);
-                        xStart++;
+            if (dy2) dv2_step = dv2/ (float)abs(dy2);
+            if (dy2) du2_step = du2/ (float)abs(dy2);
+
+
+            // Draw top half 
+            if (dy1){
+                // Move y 
+                for (int i = y1; i <= y2;i++){
+                    int ax = x1 + (float)(i - y1) * dax_step;
+                    int bx = x1 + (float)(i - y1) * dbx_step;
+
+                    float tex_su = u1 + (float)(i - y1) * du1_step;
+                    float tex_sv = v1 + (float)(i - y1) * dv1_step;
+
+                    float tex_eu = u1 + (float)(i - y1) * du2_step;
+                    float tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+                    // Sort the x axis
+                    if (ax > bx){
+                        swap(ax,bx);
+                        swap(tex_su,tex_eu);
+                        swap(tex_sv,tex_ev);
                     }
-                    //move down y 
-                    ySteps++;
-                    y++;
-                }
-            
-            // Bottom half 
-                int x3Steps = 0 ;
-                float A3_dx_dy = (float)(x2 - x3)/(y2 - y3);
-                if (!(x2 - x3) || !(y2 - y3)) A3_dx_dy = 0;
 
-                while (y <= y3){
-                    xs_temp = x1 + (ySteps * A1_dx_dy);
-                    xe_temp = x2 + (x3Steps * A3_dx_dy);
+                    tex_u = tex_su;
+                    tex_v = tex_sv;
 
-                    xStart = min(xs_temp,xe_temp);
-                    xEnd = max(xe_temp,xs_temp);
-                    
-                    // Calculate texture y co-ordinate
-                    // What percentage have we moved in the y vertex
-                    percentageY = (float) (y - y1) / (y3 - y1);
-                    textureY =  this->texture.getHeight() * percentageY;
+                    float tstep = 1.0f / ((float)(bx - ax));
+                    float t = 0.0f;
 
-        
-                    
+                    for (int j = ax; j <bx; j++){
+                        tex_u = (1.0f - t) * tex_su + t * tex_eu;
+                        tex_v = (1.0f - t) * tex_sv + t * tex_ev;
 
-                    while (xStart <= xEnd){
-                        float percentageX = (float) (xStart - minX) / (maxX - minX);
-                        // Texture X
-                        int textureX = this->texture.getWidth() * percentageX;
+                        tex_u = f_min(tex_u,1.0f);
+                        tex_v = f_min(tex_v,1.0f);
 
-                        // Texture
-                        RGB pixel = this->texture.getPixelAt(textureY,textureX);
+                        RGB pixel = texture.getPixelAt(tex_v * this->texture.getHeight(),tex_u * this->texture.getWidth());
                         glColor3f(pixel.r,pixel.g,pixel.b);
-                        glVertex2i(xStart,y);
-                        xStart++;
+                        if (colorRed) glColor3f(1,0,0);
+                        glVertex2i(j,i);
+
+                        t += tstep;
                     }
-                    //move down y 
-                    ySteps++;
-                    x3Steps++;
-                    y++;
+
                 }
+            }
+
+            dy1 = y3 - y2;
+            dx1 = x3 - x2;
+            dv1 = v3 - v2;
+            du1 = u3 - u2;
 
 
+            if (dy1) dax_step = dx1 / (float)abs(dy1);
+            if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+            du1_step = 0, dv1_step = 0;
+            if (dy1) du1_step = du1 / (float)abs(dy1);
+            if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+
+            if (dy1)
+            {
+                for (int i = y2; i <= y3; i++)
+                {
+                    int ax = x2 + (float)(i - y2) * dax_step;
+                    int bx = x1 + (float)(i - y1) * dbx_step;
+
+                    float tex_su = u2 + (float)(i - y2) * du1_step;
+                    float tex_sv = v2 + (float)(i - y2) * dv1_step;
+
+                    float tex_eu = u1 + (float)(i - y1) * du2_step;
+                    float tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+
+                    if (ax > bx)
+                    {
+                        swap(ax, bx);
+                        swap(tex_su, tex_eu);
+                        swap(tex_sv, tex_ev);
+
+                    }
+
+                    tex_u = tex_su;
+                    tex_v = tex_sv;
+
+
+                    float tstep = 1.0f / ((float)(bx - ax));
+                    float t = 0.0f;
+
+                    for (int j = ax; j < bx; j++)
+                    {
+                        tex_u = (1.0f - t) * tex_su + t * tex_eu;
+                        tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+
+                    
+                        tex_u = f_min(tex_u,1.0f);
+                        tex_v = f_min(tex_v,1.0f);
+
+                        RGB pixel = texture.getPixelAt(tex_v * this->texture.getHeight(),tex_u * this->texture.getWidth());
+                        glColor3f(pixel.r,pixel.g,pixel.b);
+                        if (colorRed) glColor3f(1,0,0);
+                        glVertex2i(j,i);
+
+                        t += tstep;
+                    }
+                }	
+            }		
             glEnd();
+
+
+            //Draw lines 
             glBegin(GL_LINES);
                 glColor3f(1,0,0);
                 glVertex2i(tri.p[0].x,tri.p[0].y);
@@ -245,8 +295,8 @@ class W3DGraphics {
                 glVertex2i(tri.p[2].x,tri.p[2].y);
                 glVertex2i(tri.p[0].x,tri.p[0].y);
             glEnd();
-
         }
+
         // Draws the texture ppm 
         void drawTexture(){
             //GL Begin
@@ -318,7 +368,24 @@ class W3DGraphics {
 
             // Load the texture 
             this->texture = readPPM("./assets/objs/crate/crate.ppm");
-            this->mesh = getCube();
+            this->mesh.LoadFromObjectFile("./assets/objs/cube.obj");
+            this->mesh.triangles[0].t[0].u = 0;
+            this->mesh.triangles[0].t[0].v = 0;
+            this->mesh.triangles[0].t[1].u = 1.f;
+            this->mesh.triangles[0].t[1].v = 1.f;
+            this->mesh.triangles[0].t[2].u = 0;
+            this->mesh.triangles[0].t[2].v = 1.f;
+            
+            this->mesh.triangles[6].t[0].u = 0;
+            this->mesh.triangles[6].t[0].v = 0;
+            this->mesh.triangles[6].t[1].u = 0.f;
+            this->mesh.triangles[6].t[1].v = 1.f;
+            this->mesh.triangles[6].t[2].u = 1.f;
+            this->mesh.triangles[6].t[2].v = 1.f;
+
+            
+
+
 
             // Set Black Background
             glClearColor(0,0, 0, 1); 
@@ -341,10 +408,7 @@ class W3DGraphics {
 
         // Called every time the window updates     
         bool onWindowUpdate(){
-            //this->rotationAngle = 0.55f + (float)22/7 * 2;
-            this->rotationAngle = 2.015 * 3.124;
-            //this->rotationAngle = 2.1 * 3.124;
-            //cout << rotationAngle << endl;
+            this->rotationAngle += 0.001;
             // Render object
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
@@ -364,9 +428,9 @@ class W3DGraphics {
                 matWorld  = MatrixMultiplyMatrix(matWorld,matTrans);
 
                 // No matworld 
-                matWorld = Matrix4x4_MakeIdentity();
-                matRotX = getMatrixRotationX(rotationAngle);
-                matWorld = MatrixMultiplyMatrix(matRotX,matTrans);
+                //matWorld = Matrix4x4_MakeIdentity();
+                //matRotX = getMatrixRotationX(rotationAngle);
+                //matWorld = MatrixMultiplyMatrix(matRotX,matTrans);
 
                 triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
                 triTransformed.p[1] = MatrixMultiplyVector(matWorld,tri.p[1]);
@@ -380,11 +444,12 @@ class W3DGraphics {
                 //  Determine the normal so that we do not draw triangles that are not facing us
                 Vect3d normal,line1,line2 ;
                 line1 = triTransformed.p[1] - triTransformed.p[0];
-                line2 = triTransformed.p[2] - triTransformed.p[1]; 
+                line2 = triTransformed.p[2] - triTransformed.p[0]; 
                 normal = VectorCrossProduct(line1,line2);
                 NormalizeVector(normal);
 
 
+                vCamera = {0,0,-1};
                 // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
                 Vect3d vCameraRay = triTransformed.p[0] - vCamera;
 
@@ -397,7 +462,6 @@ class W3DGraphics {
 
                     float dt = f_max(VectorDotProduct(normal,lightSource),0);
                     Color color = {abs(dt*1),abs(dt*1),abs(dt*1)};
-
 
                     //
                     // If z is negetive
@@ -428,12 +492,12 @@ class W3DGraphics {
             projectedTriangles = sortTriangleList(projectedTriangles);
 
 
-            Triangle sample;
-                sample.p[0] = {20,20,0};
-                sample.p[1] = {180,180,0};
-                sample.p[2] = {20,180,0};
             // Draw the triangle on the server side if showGraphics is true 
             for (Triangle tri : projectedTriangles){
+                if (tri.t[0].u == -1){
+                    this->texturedTriangle(tri);
+                    continue;
+                }
                 this->texturedTriangle(tri);
             }
 
