@@ -30,6 +30,7 @@ struct Vect3d{
 
 struct Vect2d{
     float u,v;
+    float w = 1 ;
 };
 
 struct Color
