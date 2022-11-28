@@ -122,6 +122,10 @@ class W3DGraphics {
             float u3 = tri.t[2].u;
             float v3 = tri.t[2].v;
 
+            float w1 = tri.t[0].w ;
+            float w2 = tri.t[1].w ;
+            float w3 = tri.t[2].w ;
+
 
             // Sort Points 
             if (y2 < y1){
@@ -129,6 +133,7 @@ class W3DGraphics {
                 swap(x2,x1);
                 swap(u2,u1);
                 swap(v2,v1);
+                swap(w2,w1);
             }
 
             if (y3 < y1){
@@ -136,6 +141,7 @@ class W3DGraphics {
                 swap(x3,x1);
                 swap(u3,u1);
                 swap(v3,v1);
+                swap(w3,w1);
             }
 
             if (y3 < y2){
@@ -143,6 +149,7 @@ class W3DGraphics {
                 swap(x3,x2);
                 swap(u3,u2);
                 swap(v3,v2);
+                swap(w3,w2);
             }
 
             // Args 
@@ -150,31 +157,35 @@ class W3DGraphics {
             int dx1 = x2 - x1 ;
             float dv1 = v2 - v1;
             float du1 = u2 - u1;
+            float dw1 = w2 - w1 ;
 
             int dy2 = y3 - y1;
             int dx2 = x3 - x1;
             float dv2 = v3 - v1;
             float du2 = u3 - u1;
+            float dw2 = w3 - w1;
 
 
             // Calculate dx_1 and dx_2 
-            float dax_step = 0, dbx_step = 0,
+            float dax_step = 0, dbx_step = 0, dw1_step= 0, dw2_step = 0,
                 du1_step = 0, dv1_step = 0,
                 du2_step =0, dv2_step = 0 ;
 
-            float tex_u,tex_v;
+            float tex_u,tex_v, tex_w;
 
 
             // Calculate differentials 
             if (dy1) dax_step = dx1 / (float)abs(dy1); //float absolutes 
-            if (dy2) dbx_step = dx2 / (float)abs(dy2);
+            if (dy2) dbx_step = dx2 / (float)abs(dy2); 
 
             if (dy1) dv1_step = dv1/  (float)abs(dy1);
-            if (dy2) du1_step = du1/ (float)abs(dy1);
+            if (dy1) du1_step = du1/ (float)abs(dy1);
+            if (dy1) dw1_step = dw1 / (float)abs(dy1);
+
 
             if (dy2) dv2_step = dv2/ (float)abs(dy2);
             if (dy2) du2_step = du2/ (float)abs(dy2);
-
+            if (dy2) dw2_step = dw2/ (float)abs(dy2);
 
             // Draw top half 
             if (dy1){
@@ -185,19 +196,23 @@ class W3DGraphics {
 
                     float tex_su = u1 + (float)(i - y1) * du1_step;
                     float tex_sv = v1 + (float)(i - y1) * dv1_step;
+                    float tex_sw = w1 + (float)(i - y1) * dw1_step;
 
                     float tex_eu = u1 + (float)(i - y1) * du2_step;
                     float tex_ev = v1 + (float)(i - y1) * dv2_step;
+                    float tex_ew = w1 + (float)(i - y1) * dw2_step;
 
                     // Sort the x axis
                     if (ax > bx){
                         swap(ax,bx);
                         swap(tex_su,tex_eu);
                         swap(tex_sv,tex_ev);
+                        swap(tex_sw,tex_ew);
                     }
 
                     tex_u = tex_su;
                     tex_v = tex_sv;
+                    tex_w = tex_sw;
 
                     float tstep = 1.0f / ((float)(bx - ax));
                     float t = 0.0f;
@@ -205,11 +220,13 @@ class W3DGraphics {
                     for (int j = ax; j <bx; j++){
                         tex_u = (1.0f - t) * tex_su + t * tex_eu;
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+                        tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
+                        // Not sure is required
                         tex_u = f_min(tex_u,1.0f);
                         tex_v = f_min(tex_v,1.0f);
 
-                        RGB pixel = texture.getPixelAt(tex_v * this->texture.getHeight(),tex_u * this->texture.getWidth());
+                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * this->texture.getHeight(),(tex_u/tex_w) * this->texture.getWidth());
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         if (colorRed) glColor3f(1,0,0);
                         glVertex2i(j,i);
@@ -224,7 +241,8 @@ class W3DGraphics {
             dx1 = x3 - x2;
             dv1 = v3 - v2;
             du1 = u3 - u2;
-
+            dw1 = w3 - w2;
+           
 
             if (dy1) dax_step = dx1 / (float)abs(dy1);
             if (dy2) dbx_step = dx2 / (float)abs(dy2);
@@ -232,6 +250,7 @@ class W3DGraphics {
             du1_step = 0, dv1_step = 0;
             if (dy1) du1_step = du1 / (float)abs(dy1);
             if (dy1) dv1_step = dv1 / (float)abs(dy1);
+            if (dy1) dw1_step = dw1 / (float)abs(dy1);
 
 
             if (dy1)
@@ -243,9 +262,11 @@ class W3DGraphics {
 
                     float tex_su = u2 + (float)(i - y2) * du1_step;
                     float tex_sv = v2 + (float)(i - y2) * dv1_step;
+                    float tex_sw = w2 + (float)(i - y2) * dw1_step;
 
                     float tex_eu = u1 + (float)(i - y1) * du2_step;
                     float tex_ev = v1 + (float)(i - y1) * dv2_step;
+                    float tex_ew = w1 + (float)(i - y1) * dw2_step;
 
 
                     if (ax > bx)
@@ -253,11 +274,13 @@ class W3DGraphics {
                         swap(ax, bx);
                         swap(tex_su, tex_eu);
                         swap(tex_sv, tex_ev);
+                        swap(tex_sw, tex_ew);
 
                     }
 
                     tex_u = tex_su;
                     tex_v = tex_sv;
+                    tex_w = tex_sw;
 
 
                     float tstep = 1.0f / ((float)(bx - ax));
@@ -267,15 +290,13 @@ class W3DGraphics {
                     {
                         tex_u = (1.0f - t) * tex_su + t * tex_eu;
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+                        tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-
-                    
                         tex_u = f_min(tex_u,1.0f);
                         tex_v = f_min(tex_v,1.0f);
 
-                        RGB pixel = texture.getPixelAt(tex_v * this->texture.getHeight(),tex_u * this->texture.getWidth());
+                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * this->texture.getHeight(),(tex_u/tex_w) * this->texture.getWidth());
                         glColor3f(pixel.r,pixel.g,pixel.b);
-                        if (colorRed) glColor3f(1,0,0);
                         glVertex2i(j,i);
 
                         t += tstep;
@@ -369,6 +390,8 @@ class W3DGraphics {
             // Load the texture 
             this->texture = readPPM("./assets/objs/crate/crate.ppm");
             this->mesh.LoadFromObjectFile("./assets/objs/cube.obj");
+
+            // Apply some texture to the surface
             this->mesh.triangles[0].t[0].u = 0;
             this->mesh.triangles[0].t[0].v = 0;
             this->mesh.triangles[0].t[1].u = 1.f;
@@ -376,6 +399,44 @@ class W3DGraphics {
             this->mesh.triangles[0].t[2].u = 0;
             this->mesh.triangles[0].t[2].v = 1.f;
             
+             
+            this->mesh.triangles[1].t[0].u = 0;
+            this->mesh.triangles[1].t[0].v = 0;
+            this->mesh.triangles[1].t[1].u = 1.f;
+            this->mesh.triangles[1].t[1].v = 1.f;
+            this->mesh.triangles[1].t[2].u = 0;
+            this->mesh.triangles[1].t[2].v = 1.f;
+
+            this->mesh.triangles[2].t[0].u = 0;
+            this->mesh.triangles[2].t[0].v = 0;
+            this->mesh.triangles[2].t[1].u = 1.f;
+            this->mesh.triangles[2].t[1].v = 1.f;
+            this->mesh.triangles[2].t[2].u = 0;
+            this->mesh.triangles[2].t[2].v = 1.f;
+
+            this->mesh.triangles[3].t[0].u = 0;
+            this->mesh.triangles[3].t[0].v = 0;
+            this->mesh.triangles[3].t[1].u = 1.f;
+            this->mesh.triangles[3].t[1].v = 1.f;
+            this->mesh.triangles[3].t[2].u = 0;
+            this->mesh.triangles[3].t[2].v = 1.f;
+
+            this->mesh.triangles[4].t[0].u = 0;
+            this->mesh.triangles[4].t[0].v = 0;
+            this->mesh.triangles[4].t[1].u = 1.f;
+            this->mesh.triangles[4].t[1].v = 1.f;
+            this->mesh.triangles[4].t[2].u = 0;
+            this->mesh.triangles[4].t[2].v = 1.f;
+
+            this->mesh.triangles[5].t[0].u = 0;
+            this->mesh.triangles[5].t[0].v = 0;
+            this->mesh.triangles[5].t[1].u = 1.f;
+            this->mesh.triangles[5].t[1].v = 1.f;
+            this->mesh.triangles[5].t[2].u = 0;
+            this->mesh.triangles[5].t[2].v = 1.f;
+            
+
+            // Across 
             this->mesh.triangles[6].t[0].u = 0;
             this->mesh.triangles[6].t[0].v = 0;
             this->mesh.triangles[6].t[1].u = 0.f;
@@ -383,11 +444,43 @@ class W3DGraphics {
             this->mesh.triangles[6].t[2].u = 1.f;
             this->mesh.triangles[6].t[2].v = 1.f;
 
-            
+            this->mesh.triangles[7].t[0].u = 0;
+            this->mesh.triangles[7].t[0].v = 0;
+            this->mesh.triangles[7].t[1].u = 0.f;
+            this->mesh.triangles[7].t[1].v = 1.f;
+            this->mesh.triangles[7].t[2].u = 1.f;
+            this->mesh.triangles[7].t[2].v = 1.f;
+
+            this->mesh.triangles[8].t[0].u = 0;
+            this->mesh.triangles[8].t[0].v = 0;
+            this->mesh.triangles[8].t[1].u = 0.f;
+            this->mesh.triangles[8].t[1].v = 1.f;
+            this->mesh.triangles[8].t[2].u = 1.f;
+            this->mesh.triangles[8].t[2].v = 1.f;
+
+            this->mesh.triangles[9].t[0].u = 0;
+            this->mesh.triangles[9].t[0].v = 0;
+            this->mesh.triangles[9].t[1].u = 0.f;
+            this->mesh.triangles[9].t[1].v = 1.f;
+            this->mesh.triangles[9].t[2].u = 1.f;
+            this->mesh.triangles[9].t[2].v = 1.f;
 
 
+            this->mesh.triangles[10].t[0].u = 0;
+            this->mesh.triangles[10].t[0].v = 0;
+            this->mesh.triangles[10].t[1].u = 0.f;
+            this->mesh.triangles[10].t[1].v = 1.f;
+            this->mesh.triangles[10].t[2].u = 1.f;
+            this->mesh.triangles[10].t[2].v = 1.f;
 
-            // Set Black Background
+            this->mesh.triangles[11].t[0].u = 0;
+            this->mesh.triangles[11].t[0].v = 0;
+            this->mesh.triangles[11].t[1].u = 0.f;
+            this->mesh.triangles[11].t[1].v = 1.f;
+            this->mesh.triangles[11].t[2].u = 1.f;
+            this->mesh.triangles[11].t[2].v = 1.f;
+
+            // Set Black Background of window
             glClearColor(0,0, 0, 1); 
             glClear(GL_COLOR_BUFFER_BIT);
             // Set Window Bounds
@@ -421,9 +514,11 @@ class W3DGraphics {
                 //  Geometry (Rotation and Translation)
                 matRotZ = getMatrixRotationZ(rotationAngle);
                 matRotX = getMatrixRotationX(rotationAngle);
-            
+
+                /// Translate into Z by 5, otherwise we will not see the object because we are at (0,0,0)
                 Matrix4x4 matTrans = Matrix_MakeTranslation(0.0f,0.0f,5.0f);
                 
+                // Create a matworld matrix by multiplying the 2 rotation matrixes, and then the mat translation 
                 Matrix4x4 matWorld = MatrixMultiplyMatrix(matRotZ,matRotX);
                 matWorld  = MatrixMultiplyMatrix(matWorld,matTrans);
 
@@ -432,9 +527,11 @@ class W3DGraphics {
                 //matRotX = getMatrixRotationX(rotationAngle);
                 //matWorld = MatrixMultiplyMatrix(matRotX,matTrans);
 
+                // Rotate and Translate the points 
                 triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
                 triTransformed.p[1] = MatrixMultiplyVector(matWorld,tri.p[1]);
                 triTransformed.p[2] = MatrixMultiplyVector(matWorld,tri.p[2]); 
+
                 //Copy texture as well 
                 triTransformed.t[0] = tri.t[0];
                 triTransformed.t[1] = tri.t[1];
@@ -450,6 +547,7 @@ class W3DGraphics {
 
 
                 vCamera = {0,0,-1};
+            
                 // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
                 Vect3d vCameraRay = triTransformed.p[0] - vCamera;
 
@@ -464,20 +562,36 @@ class W3DGraphics {
                     Color color = {abs(dt*1),abs(dt*1),abs(dt*1)};
 
                     //
-                    // If z is negetive
-                    MultiplyMatrixVector(triTransformed.p[0],triProjected.p[0],this->projectionMatrix);
-                    MultiplyMatrixVector(triTransformed.p[1],triProjected.p[1],this->projectionMatrix);
-                    MultiplyMatrixVector(triTransformed.p[2],triProjected.p[2],this->projectionMatrix);
+                    // Project the matrix (Some normalization takes place here)
+                    float w0 = MultiplyMatrixVector(triTransformed.p[0],triProjected.p[0],this->projectionMatrix);
+                    float w1 = MultiplyMatrixVector(triTransformed.p[1],triProjected.p[1],this->projectionMatrix);
+                    float w2 = MultiplyMatrixVector(triTransformed.p[2],triProjected.p[2],this->projectionMatrix);
+
+                    // Copy the texture information to triProjected from triTransformed
                     triProjected.t[0] = triTransformed.t[0];
                     triProjected.t[1] = triTransformed.t[1];
                     triProjected.t[2] = triTransformed.t[2];
 
-                    //Offset
+                    // Also normalize u and v , as z gets larger u and v get smaller 
+                    triProjected.t[0].u = triProjected.t[0].u / w0;
+                    triProjected.t[1].u = triProjected.t[1].u / w1;
+                    triProjected.t[2].u = triProjected.t[2].u / w2;
+
+                    triProjected.t[0].v = triProjected.t[0].v / w0;
+                    triProjected.t[1].v = triProjected.t[1].v / w1;
+                    triProjected.t[2].v = triProjected.t[2].v / w2;  
+
+                    triProjected.t[0].w = 1.f / w0;
+                    triProjected.t[1].w = 1.f / w1;
+                    triProjected.t[2].w = 1.f / w2;  
+
+                    //Offset to the center of the screen 
                     Vect3d vOffsetView = {1,1,0};
                     triProjected.p[0] = triProjected.p[0] + vOffsetView;
                     triProjected.p[1] = triProjected.p[1] + vOffsetView;
                     triProjected.p[2] = triProjected.p[2] + vOffsetView;
                     
+                    // Scale to the window width 
                     VectorMultiplyFloat(triProjected.p[0],0.4f * this->window_width);
                     VectorMultiplyFloat(triProjected.p[1],0.4f * this->window_width);
                     VectorMultiplyFloat(triProjected.p[2],0.4f * this->window_width);
