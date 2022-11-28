@@ -39,6 +39,9 @@ class W3DGraphics {
         // Time
         std::chrono::steady_clock::time_point timeBegin;
 
+        // Depth buffer 
+        float* depthBuffer;
+
 
         // Setup Window
         void setupWindow(int &argc, char **&argv){
@@ -94,18 +97,15 @@ class W3DGraphics {
 
         // Texture Triangle(2)
         void texturedTriangle(Triangle tri,bool colorRed=false){
-            glBegin(GL_LINES);
-                glVertex2i(tri.p[0].x,tri.p[0].y);
-                glVertex2i(tri.p[1].x,tri.p[1].y);
-                glVertex2i(tri.p[1].x,tri.p[1].y);
-                glVertex2i(tri.p[2].x,tri.p[2].y);
-                glVertex2i(tri.p[2].x,tri.p[2].y);
-                glVertex2i(tri.p[0].x,tri.p[0].y);
-            glEnd();
+            // Clear depth buffer 
+            for (u_int i = 0; i != this->window_height * window_width; i++){
+                this->depthBuffer[i] = 0 ; 
+            }
 
-            // 
+            // GL_BEGIN
             glBegin(GL_POINTS);
             glColor3f(1,1,0);
+            
             // Points 
             int x1 = tri.p[0].x;
             int y1 = tri.p[0].y;
@@ -228,8 +228,11 @@ class W3DGraphics {
 
                         RGB pixel = texture.getPixelAt((tex_v/tex_w) * this->texture.getHeight(),(tex_u/tex_w) * this->texture.getWidth());
                         glColor3f(pixel.r,pixel.g,pixel.b);
-                        if (colorRed) glColor3f(1,0,0);
-                        glVertex2i(j,i);
+                        
+                        if (tex_w > depthBuffer[i * this->window_width + j]){
+                            glVertex2i(j,i);
+                            depthBuffer[i * this->window_width + j] = tex_w;
+                        }
 
                         t += tstep;
                     }
@@ -297,7 +300,11 @@ class W3DGraphics {
 
                         RGB pixel = texture.getPixelAt((tex_v/tex_w) * this->texture.getHeight(),(tex_u/tex_w) * this->texture.getWidth());
                         glColor3f(pixel.r,pixel.g,pixel.b);
-                        glVertex2i(j,i);
+                        
+                        if (tex_w > depthBuffer[i * this->window_width + j]){
+                            glVertex2i(j,i);
+                            depthBuffer[i * this->window_width + j] = tex_w;
+                        }
 
                         t += tstep;
                     }
@@ -306,16 +313,7 @@ class W3DGraphics {
             glEnd();
 
 
-            //Draw lines 
-            glBegin(GL_LINES);
-                glColor3f(1,0,0);
-                glVertex2i(tri.p[0].x,tri.p[0].y);
-                glVertex2i(tri.p[1].x,tri.p[1].y);
-                glVertex2i(tri.p[1].x,tri.p[1].y);
-                glVertex2i(tri.p[2].x,tri.p[2].y);
-                glVertex2i(tri.p[2].x,tri.p[2].y);
-                glVertex2i(tri.p[0].x,tri.p[0].y);
-            glEnd();
+        
         }
 
         // Draws the texture ppm 
@@ -362,6 +360,8 @@ class W3DGraphics {
             //Set window width and height
             this->window_height = windowHeight;
             window_width = windowHeight; 
+            // Depth buffer 
+            this->depthBuffer = new float[window_height * window_width];
         }
 
         // Initializer 
@@ -501,7 +501,7 @@ class W3DGraphics {
 
         // Called every time the window updates     
         bool onWindowUpdate(){
-            this->rotationAngle += 0.001;
+            this->rotationAngle += 0.005;
             // Render object
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
@@ -603,7 +603,7 @@ class W3DGraphics {
             }
 
             // Raster the triangles
-            projectedTriangles = sortTriangleList(projectedTriangles);
+            //projectedTriangles = sortTriangleList(projectedTriangles);
 
 
             // Draw the triangle on the server side if showGraphics is true 
