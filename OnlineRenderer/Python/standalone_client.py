@@ -1,4 +1,3 @@
-from copy import deepcopy
 from random import randint
 from re import X
 from tkinter.messagebox import RETRY
@@ -19,6 +18,10 @@ class vec3d:
         self.y = matrix[0][1]
         self.z = matrix[0][2]
 
+    def copy(self):
+        vectCopy = vec3d()
+        vectCopy = self
+        return vectCopy
 class triangle:
     def __init__(self,vectors3d_three=None):
         self.color = (50,50,50)
@@ -32,6 +35,11 @@ class triangle:
     
     def setColor(self,color):
         self.color =  color
+
+    def copy(self):
+        triCopy = triangle()
+        triCopy = self 
+        return triCopy
 
 class mesh:
     def __init__(self):
@@ -131,7 +139,7 @@ class olcEngine3d:
 
         #load mesh 
         self.meshCube = mesh()
-        self.meshCube.LoadFromObjectFile("./objs/plane.obj")
+        self.meshCube.LoadFromObjectFile("./objs/mountains.obj")
 
 
     def drawTriangle(self,tri: triangle,color):
@@ -143,7 +151,7 @@ class olcEngine3d:
         
     def onUserUpdate(self):
         self.window.fill(self.black)
-        self.angle = 0
+        self.angle = 22/7
 
         # Rotations 
         rotationZ = Matrix_MakeRotationZ(self.angle)
@@ -248,7 +256,7 @@ class olcEngine3d:
                     if i == 1:
                         triProjected.setColor((0,0,255))
 
-                    vecTrianglesToRaster.append(deepcopy(triProjected))
+                    vecTrianglesToRaster.append(triProjected.copy())
 
         vecTrianglesToRaster.sort(key= lambda x : x.getMid(),reverse=True)
         
@@ -258,7 +266,7 @@ class olcEngine3d:
             clipped = [triangle(),triangle()]
             nClippedTriangle = Tiangle_ClipAgainstPlane(vec3d([[0,0,0]]),vec3d([[0,1,0]]),triToClip,clipped[0],clipped[1])
             for i in range(nClippedTriangle):
-                topClipped.append(deepcopy(clipped[i]))
+                topClipped.append(clipped[i].copy())
         
         # Another Clip
         leftClipped = [] 
@@ -282,7 +290,8 @@ class olcEngine3d:
             clipped = [triangle(),triangle()]
             nClippedTriangle = Tiangle_ClipAgainstPlane(vec3d([[self.window_width - 1,0,0]]),vec3d([[-1,0,0]]),triToClip,clipped[0],clipped[1])
             for i in range(nClippedTriangle):
-                lastClip.append(deepcopy(clipped[i]))
+                triCopy = triangle()
+                lastClip.append(clipped[i].copy())
 
 
         for t in lastClip:
@@ -345,9 +354,9 @@ def Tiangle_ClipAgainstPlane(plane_p:vec3d,plane_n: vec3d,in_tri:triangle,out_tr
     if len(inside_points) == 3: 
         out_tri2.color = in_tri.color
         out_tri1.color = in_tri.color
-        out_tri1.p[0] = deepcopy(in_tri.p[0])
-        out_tri1.p[1] = deepcopy(in_tri.p[1])
-        out_tri1.p[2] = deepcopy(in_tri.p[2])
+        out_tri1.p[0] = in_tri.p[0].copy()
+        out_tri1.p[1] = in_tri.p[1].copy()
+        out_tri1.p[2] = in_tri.p[2].copy()
         return 1 #all are valid 
 
     if len(inside_points) == 1 and len(outside_points) == 2:
@@ -355,7 +364,7 @@ def Tiangle_ClipAgainstPlane(plane_p:vec3d,plane_n: vec3d,in_tri:triangle,out_tr
         out_tri1.color = in_tri.color
 
         #inside point is valid we keep that 
-        out_tri1.p[0] = deepcopy(inside_points[0])
+        out_tri1.p[0] = inside_points[0].copy()
 
         #but the two new points are at the locations where the 
 	    #original sides of the triangle (lines) intersect with the plane
@@ -371,11 +380,11 @@ def Tiangle_ClipAgainstPlane(plane_p:vec3d,plane_n: vec3d,in_tri:triangle,out_tr
         #The first triangle consists of the two inside points and a new
 		#point determined by the location where one side of the triangle
 		#intersects with the plane
-        out_tri1.p[0] = deepcopy(inside_points[0])
-        out_tri1.p[1] = deepcopy(inside_points[1])
+        out_tri1.p[0] = inside_points[0].copy()
+        out_tri1.p[1] = inside_points[1].copy()
         out_tri1.p[2] = Vector_IntersectPlane(plane_p,plane_n,inside_points[1],outside_points[0])
 
-        out_tri2.p[0] = deepcopy(inside_points[0])
+        out_tri2.p[0] = inside_points[0].copy()
         out_tri2.p[1] = Vector_IntersectPlane(plane_p,plane_n,inside_points[1],outside_points[0])
         out_tri2.p[2] = Vector_IntersectPlane(plane_p,plane_n,inside_points[0],outside_points[0])
         return 2
