@@ -11,7 +11,7 @@
 
 
 // Libs
-#include "PPA/image_loader.h"
+#include "utils/image_loader.h"
 #include "utils/common.h"
 #include "utils/matrix_operations.h"
 #include "utils/sample_cube.h"
@@ -66,33 +66,6 @@ class W3DGraphics {
         float lineEquationFindX(Vect3d line1, Vect3d line2,float y){
             float m = (line1.y - line2.y) / (line1.x - line2.x);
             return y/m;
-        }
-
-        // Texture Triangle
-        void textureTriangle(Triangle &tri){
-            //GLBEGIN
-            glBegin(GL_POINTS);
-                float y = tri.p[0].y ;
-                while (y <= tri.p[2].y){
-                    float x = tri.p[0].y;
-                    float xEnd = lineEquationFindX(tri.p[0],tri.p[1],y); 
-                    while(x <= xEnd){
-                        
-                        // Normalize x and y 
-                        float xNorm = x / (tri.p[0].x + tri.p[1].x);
-                        float yNorm = y / (tri.p[0].y + tri.p[2].y);
-                        RGB pixel = this->texture.getPixelAt(this->texture.getHeight() * yNorm,this->texture.getWidth() * xNorm);
-                        glColor3f(pixel.r,pixel.g,pixel.b);
-                        glVertex2f(x,y);
-
-                        // Increment x 
-                        x += 1;
-                    }
-
-                    // increment y
-                    y += 1 ;
-                }
-            glEnd();
         }
 
         // Texture Triangle(2)
@@ -332,7 +305,7 @@ class W3DGraphics {
             glEnd();
         }
 
-        //Draw Triangles
+        //Draw Triangle
         void drawTriangle(Triangle &tri){
             
             //glBegin
