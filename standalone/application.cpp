@@ -14,6 +14,7 @@
 #include "utils/image/image_loader.h"
 #include "utils/common/common.h"
 #include "utils/common/matrix_operations.h"
+#include "utils/camera/camera.h"
 
 
 // Variables 
@@ -41,7 +42,6 @@ class W3DGraphics {
         // Depth buffer 
         float* depthBuffer;
 
-
         // Setup Window
         void setupWindow(int &argc, char **&argv){
             // Setup Window 
@@ -63,34 +63,7 @@ class W3DGraphics {
             return y/m;
         }
 
-        // Texture Triangle
-        void textureTriangle(Triangle &tri){
-            //GLBEGIN
-            glBegin(GL_POINTS);
-                float y = tri.p[0].y ;
-                while (y <= tri.p[2].y){
-                    float x = tri.p[0].y;
-                    float xEnd = lineEquationFindX(tri.p[0],tri.p[1],y); 
-                    while(x <= xEnd){
-                        
-                        // Normalize x and y 
-                        float xNorm = x / (tri.p[0].x + tri.p[1].x);
-                        float yNorm = y / (tri.p[0].y + tri.p[2].y);
-                        RGB pixel = this->texture.getPixelAt(this->texture.getHeight() * yNorm,this->texture.getWidth() * xNorm);
-                        glColor3f(pixel.r,pixel.g,pixel.b);
-                        glVertex2f(x,y);
-
-                        // Increment x 
-                        x += 1;
-                    }
-
-                    // increment y
-                    y += 1 ;
-                }
-            glEnd();
-        }
-
-        // Texture Triangle(2)
+        // Textured Triangle
         void texturedTriangle(Triangle tri,bool colorRed=false){
             // Clear depth buffer 
             for (u_int i = 0; i != this->window_height * window_width; i++){
@@ -349,6 +322,9 @@ class W3DGraphics {
         // Camera 
         Vect3d vCamera;
 
+        // W3Camera
+        W3Camera sceneCamera; 
+        
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
             instance = this;
@@ -364,7 +340,6 @@ class W3DGraphics {
             // Setup Window 
             this->setupWindow(argc,argv);
         }
-
    
         //Entry Window Ready 
         static void _EntryOnWindowReady(){
@@ -495,11 +470,28 @@ class W3DGraphics {
             glClear(GL_COLOR_BUFFER_BIT);
             // Set Window Bounds
             glOrtho(0.0,this->window_width,this->window_height,0.0,0,1000);
+
+            // Configure camera
+            this->sceneCamera = W3Camera(0.02f);
         }
         
         // onUserInput
         void onUserInput(unsigned char key,int mouseX,int mouseY){
             std::cout << key << std::endl;
+            switch (key)
+            {
+                //w - move foward
+                case 'w':
+                    this->sceneCamera.moveFoward(1);
+                    break;
+                //s - move back
+                case 's':
+                    this->sceneCamera.moveFoward(-1);
+                    break;
+                
+                default:
+                    break;
+            }
         }
 
         // Called every time the window updates     
@@ -559,11 +551,19 @@ class W3DGraphics {
                     float dt = f_max(VectorDotProduct(normal,lightSource),0);
                     Color color = {abs(dt*1),abs(dt*1),abs(dt*1)};
 
+                    // Camera viewd
+                    Triangle triViewd; 
+                    Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse(); 
+                    MultiplyMatrixVector(triTransformed.p[0],triViewd.p[0],matViewd);
+                    MultiplyMatrixVector(triTransformed.p[1],triViewd.p[1],matViewd);
+                    MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
+
+
                     //
                     // Project the matrix (Some normalization takes place here)
-                    float w0 = MultiplyMatrixVector(triTransformed.p[0],triProjected.p[0],this->projectionMatrix);
-                    float w1 = MultiplyMatrixVector(triTransformed.p[1],triProjected.p[1],this->projectionMatrix);
-                    float w2 = MultiplyMatrixVector(triTransformed.p[2],triProjected.p[2],this->projectionMatrix);
+                    float w0 = MultiplyMatrixVector(triViewd.p[0],triProjected.p[0],this->projectionMatrix);
+                    float w1 = MultiplyMatrixVector(triViewd.p[1],triProjected.p[1],this->projectionMatrix);
+                    float w2 = MultiplyMatrixVector(triViewd.p[2],triProjected.p[2],this->projectionMatrix);
 
                     // Copy the texture information to triProjected from triTransformed
                     triProjected.t[0] = triTransformed.t[0];
@@ -614,9 +614,11 @@ class W3DGraphics {
 // Test With UI
 int main(int argc, char **argv)
 {
+
     // Engine instance
     W3DGraphics graphicsEngine = W3DGraphics(800,800);
     graphicsEngine.init(argc,argv);
+
     
     return 0;
 }

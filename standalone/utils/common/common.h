@@ -26,6 +26,10 @@ struct Vect3d{
 
         return res;
     }  
+
+    Vect3d operator * (float multiplier){
+        return {this->x * multiplier, this->y * multiplier, this->z * multiplier, 1};
+    }
 };
 
 struct Vect2d{

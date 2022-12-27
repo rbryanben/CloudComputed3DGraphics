@@ -9,7 +9,7 @@
                 "-g",
                 "${file}",
                 "-o",
-                "application.bin",
+                "${fileDirname}/${fileBasenameNoExtension}",
                 "-lglut",
                 "-lGL",
                 "-lX11"

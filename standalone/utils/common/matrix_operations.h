@@ -48,6 +48,16 @@ Matrix4x4 getMatrixRotationZ(float rotationAngle){
     return matRotZ;
 }
 
+// Make Identity Matrix 
+Matrix4x4 Matrix4x4_MakeIdentity(){
+    Matrix4x4 res;
+    res.m[0][0] = 1;
+    res.m[1][1] = 1;
+    res.m[2][2] = 1;
+    res.m[3][3] = 1 ;
+    return res;
+}
+
 // Return a rotation matrix on axis X
 Matrix4x4 getMatrixRotationX(float rotationAngle){
     Matrix4x4 matRotX;
@@ -61,15 +71,18 @@ Matrix4x4 getMatrixRotationX(float rotationAngle){
     return matRotX;
 }
 
-// Make Identity Matrix 
-Matrix4x4 Matrix4x4_MakeIdentity(){
-    Matrix4x4 res;
-    res.m[0][0] = 1;
-    res.m[1][1] = 1;
-    res.m[2][2] = 1;
-    res.m[3][3] = 1 ;
-    return res;
+Matrix4x4 getMatrixRotationY(float rotationAngle){
+    Matrix4x4 matRotY = Matrix4x4_MakeIdentity();
+    matRotY.m[0][0] = cosf(rotationAngle);
+    matRotY.m[0][2] = sinf(rotationAngle);
+    matRotY.m[2][0] = -sinf(rotationAngle);
+    matRotY.m[2][2] = cosf(rotationAngle);
+
+    return matRotY;
 }
+
+
+
 
 // Make Translation
 Matrix4x4 Matrix_MakeTranslation(float x, float y, float z){
