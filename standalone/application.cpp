@@ -11,10 +11,9 @@
 
 
 // Libs
-#include "utils/image_loader.h"
-#include "utils/common.h"
-#include "utils/matrix_operations.h"
-#include "utils/sample_cube.h"
+#include "utils/image/image_loader.h"
+#include "utils/common/common.h"
+#include "utils/common/matrix_operations.h"
 
 
 // Variables 
