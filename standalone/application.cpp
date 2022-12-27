@@ -45,13 +45,6 @@ class W3DGraphics {
 
         // Setup Window
         void setupWindow(int &argc, char **&argv){
-            // Start Clock
-            this->timeBegin = std::chrono::steady_clock::now();
-
-            // Clock
-            //std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
-            //int seconds_passed = std::chrono::duration_cast<std::chrono::seconds> (currentTime- this->timeBegin).count();
-            
             // Setup Window 
             glutInit(&argc, argv);
             glutInitDisplayMode(GLUT_SINGLE);
@@ -59,13 +52,43 @@ class W3DGraphics {
             glutInitWindowPosition(100, 100);
             glutCreateWindow("OpenGL - Creating a triangle");
             glutDisplayFunc(_EntryOnWindowReady);
-            glutMainLoop();            
+            glutKeyboardFunc(_EntryKeyboard);
+            glutIdleFunc(_EntryOnWindowUpdate);
+            glutMainLoop();    
+
         }
 
         // Given two vectors an the y, returns the x 
         float lineEquationFindX(Vect3d line1, Vect3d line2,float y){
             float m = (line1.y - line2.y) / (line1.x - line2.x);
             return y/m;
+        }
+
+        // Texture Triangle
+        void textureTriangle(Triangle &tri){
+            //GLBEGIN
+            glBegin(GL_POINTS);
+                float y = tri.p[0].y ;
+                while (y <= tri.p[2].y){
+                    float x = tri.p[0].y;
+                    float xEnd = lineEquationFindX(tri.p[0],tri.p[1],y); 
+                    while(x <= xEnd){
+                        
+                        // Normalize x and y 
+                        float xNorm = x / (tri.p[0].x + tri.p[1].x);
+                        float yNorm = y / (tri.p[0].y + tri.p[2].y);
+                        RGB pixel = this->texture.getPixelAt(this->texture.getHeight() * yNorm,this->texture.getWidth() * xNorm);
+                        glColor3f(pixel.r,pixel.g,pixel.b);
+                        glVertex2f(x,y);
+
+                        // Increment x 
+                        x += 1;
+                    }
+
+                    // increment y
+                    y += 1 ;
+                }
+            glEnd();
         }
 
         // Texture Triangle(2)
@@ -305,7 +328,7 @@ class W3DGraphics {
             glEnd();
         }
 
-        //Draw Triangle
+        //Draw Triangles
         void drawTriangle(Triangle &tri){
             
             //glBegin
@@ -344,11 +367,26 @@ class W3DGraphics {
         }
 
    
-        //Return render function 
+        //Entry Window Ready 
         static void _EntryOnWindowReady(){
             //Call instance window ready
             instance->onWindowReady();
 
+        }
+
+        // Entry Window Update
+        static void _EntryOnWindowUpdate(){
+            // Clear Screen
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                // Update Display
+                instance->onWindowUpdate();
+            // Flush Screen
+            glFlush();
+        }
+        
+        // Entry Keyboard
+        static void _EntryKeyboard(unsigned char key, int x, int y){
+            instance->onUserInput(key,x,y);
         }
 
         // onWindowReady
@@ -458,22 +496,15 @@ class W3DGraphics {
             glClear(GL_COLOR_BUFFER_BIT);
             // Set Window Bounds
             glOrtho(0.0,this->window_width,this->window_height,0.0,0,1000);
-            
-            // Start Updating
-            bool closeWindow = false;
-            while (!closeWindow)
-            {
-                // Clear Screen
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                    // Window Update 
-                    closeWindow = this->onWindowUpdate();
-                // Flush Screen
-                glFlush();
-            }
+        }
+        
+        // onUserInput
+        void onUserInput(unsigned char key,int mouseX,int mouseY){
+            std::cout << key << std::endl;
         }
 
         // Called every time the window updates     
-        bool onWindowUpdate(){
+        void onWindowUpdate(){
             this->rotationAngle += 0.005;
             // Render object
             // Final projected colors and triangles 
@@ -494,11 +525,6 @@ class W3DGraphics {
                 // Create a matworld matrix by multiplying the 2 rotation matrixes, and then the mat translation 
                 Matrix4x4 matWorld = MatrixMultiplyMatrix(matRotZ,matRotX);
                 matWorld  = MatrixMultiplyMatrix(matWorld,matTrans);
-
-                // No matworld 
-                //matWorld = Matrix4x4_MakeIdentity();
-                //matRotX = getMatrixRotationX(rotationAngle);
-                //matWorld = MatrixMultiplyMatrix(matRotX,matTrans);
 
                 // Rotate and Translate the points 
                 triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
@@ -575,10 +601,6 @@ class W3DGraphics {
                 }
             }
 
-            // Raster the triangles
-            //projectedTriangles = sortTriangleList(projectedTriangles);
-
-
             // Draw the triangle on the server side if showGraphics is true 
             for (Triangle tri : projectedTriangles){
                 if (tri.t[0].u == -1){
@@ -587,15 +609,10 @@ class W3DGraphics {
                 }
                 this->texturedTriangle(tri);
             }
-
-            // Do not close window 
-            return false;
         }
 };
 
-
-
-// Test 
+// Test With UI
 int main(int argc, char **argv)
 {
     // Engine instance
