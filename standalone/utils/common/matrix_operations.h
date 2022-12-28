@@ -26,26 +26,18 @@ float MultiplyMatrixVector(Vect3d &i, Vect3d &o, Matrix4x4 &m){
 // Vector Multiply Matrix 
 Vect3d MatrixMultiplyVector(Matrix4x4 &matrix,Vect3d &vector){
     Vect3d res;
-    res.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + vector.w * matrix.m[3][0];
-    res.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + vector.w * matrix.m[3][1];
-    res.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + vector.w * matrix.m[3][2];
-    res.w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + vector.w * matrix.m[3][3];
+    res.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] +  matrix.m[3][0];
+    res.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] +  matrix.m[3][1];
+    res.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] +  matrix.m[3][2];
+    res.w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + matrix.m[3][3];
+    
+    if (res.w != 0.0f){
+        res.x /= res.w;
+        res.y /= res.w;
+        res.z /= res.w;
+    }
 
     return res;
-}
-
-// Return a rotation matrix on axis Z
-Matrix4x4 getMatrixRotationZ(float rotationAngle){
-    Matrix4x4 matRotZ;
-
-    matRotZ.m[0][0] = cosf(rotationAngle);
-    matRotZ.m[0][1] = sinf(rotationAngle);
-    matRotZ.m[1][0] = -sinf(rotationAngle);
-    matRotZ.m[1][1] = cosf(rotationAngle);
-    matRotZ.m[2][2] = 1;
-    matRotZ.m[3][3] = 1;
-
-    return matRotZ;
 }
 
 // Make Identity Matrix 
@@ -57,6 +49,22 @@ Matrix4x4 Matrix4x4_MakeIdentity(){
     res.m[3][3] = 1 ;
     return res;
 }
+
+// Return a rotation matrix on axis Z
+Matrix4x4 getMatrixRotationZ(float rotationAngle){
+    Matrix4x4 matRotZ = Matrix4x4_MakeIdentity();
+
+    matRotZ.m[0][0] = cosf(rotationAngle);
+    matRotZ.m[0][1] = -sinf(rotationAngle);
+    matRotZ.m[1][0] = sinf(rotationAngle);
+    matRotZ.m[1][1] = cosf(rotationAngle);
+    matRotZ.m[2][2] = 1;
+    matRotZ.m[3][3] = 1;
+
+    return matRotZ;
+}
+
+
 
 // Return a rotation matrix on axis X
 Matrix4x4 getMatrixRotationX(float rotationAngle){

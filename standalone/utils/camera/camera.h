@@ -11,7 +11,7 @@ class W3Camera {
         // Constructor 
         W3Camera(float movementSpeed){
             this->cameraMatrix = getMatrixRotationY(0.f);
-            this->movementSpeed = movementSpeed;
+            this->movementSpeed = 0.02f;
         }
 
         W3Camera(){
@@ -31,6 +31,9 @@ class W3Camera {
         void setMovementSpeed(float speed);
         // Move foward
         void moveFoward(float distance);
+        void moveBack();
+        // Rotate Y
+        void rotateY(float angle);
 
 };
 
@@ -68,6 +71,25 @@ Vect3d W3Camera::getZDir(){
 
 // Move Forward 
 void W3Camera::moveFoward(float distance){
-    Vect3d newPos = this->getTranslation() + (this->getZDir() * distance);
+    Vect3d newPos = this->getTranslation() + (this->getZDir() *this->movementSpeed);
     this->setTranslation(newPos);
+}
+
+// Move Forward 
+void W3Camera::moveBack(){
+    Vect3d newPos = this->getTranslation() + (this->getZDir() * -this->movementSpeed);
+    this->setTranslation(newPos);
+}
+
+// Rotates camera
+void W3Camera::rotateY(float angle){
+    // Rotation mat
+    Matrix4x4 rot = getMatrixRotationY(angle);
+
+    // translation
+    Vect3d originalTranslation = this->getTranslation();
+    // Rotate 
+    this->cameraMatrix = MatrixMultiplyMatrix(this->cameraMatrix,rot);
+    // Restore transalation
+    this->setTranslation(originalTranslation);
 }

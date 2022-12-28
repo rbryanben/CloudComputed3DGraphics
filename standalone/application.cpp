@@ -486,7 +486,15 @@ class W3DGraphics {
                     break;
                 //s - move back
                 case 's':
-                    this->sceneCamera.moveFoward(-1);
+                    this->sceneCamera.moveBack();
+                    break;
+                //a - rotate right
+                case 'a':
+                    this->sceneCamera.rotateY(-0.02);
+                    break;
+                //a - rotate left
+                case 'd':
+                    this->sceneCamera.rotateY(0.02);
                     break;
                 
                 default:
@@ -496,26 +504,25 @@ class W3DGraphics {
 
         // Called every time the window updates     
         void onWindowUpdate(){
-            this->rotationAngle += 0.005;
+            this->rotationAngle = 22.f/7.f;
             // Render object
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
+            
+            //  Geometry (Rotation and Translation)
+            Matrix4x4 matRotZ = getMatrixRotationZ(rotationAngle);
+
+            // Translate into Z by 5, otherwise we will not see the object because we are at (0,0,0)
+            Matrix4x4 matTrans = Matrix_MakeTranslation(0.0f,0.0f,5.0f);
+
+            // Create a matworld matrix by multiplying the 2 rotation matrixes, and then the mat translation 
+            Matrix4x4 matWorld = MatrixMultiplyMatrix(matRotZ,matTrans);
 
             //draw triangles 
             for (Triangle tri : this->mesh.triangles){
                 Triangle triProjected,triTransformed;
                 Matrix4x4 matRotZ, matRotX;
-
-                //  Geometry (Rotation and Translation)
-                matRotZ = getMatrixRotationZ(rotationAngle);
-                matRotX = getMatrixRotationX(rotationAngle);
-
-                /// Translate into Z by 5, otherwise we will not see the object because we are at (0,0,0)
-                Matrix4x4 matTrans = Matrix_MakeTranslation(0.0f,0.0f,5.0f);
-                
-                // Create a matworld matrix by multiplying the 2 rotation matrixes, and then the mat translation 
-                Matrix4x4 matWorld = MatrixMultiplyMatrix(matRotZ,matRotX);
-                matWorld  = MatrixMultiplyMatrix(matWorld,matTrans);
+            
 
                 // Rotate and Translate the points 
                 triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
@@ -590,9 +597,9 @@ class W3DGraphics {
                     triProjected.p[2] = triProjected.p[2] + vOffsetView;
                     
                     // Scale to the window width 
-                    VectorMultiplyFloat(triProjected.p[0],0.4f * this->window_width);
-                    VectorMultiplyFloat(triProjected.p[1],0.4f * this->window_width);
-                    VectorMultiplyFloat(triProjected.p[2],0.4f * this->window_width);
+                    VectorMultiplyFloat(triProjected.p[0],0.5f * this->window_width);
+                    VectorMultiplyFloat(triProjected.p[1],0.5f * this->window_width);
+                    VectorMultiplyFloat(triProjected.p[2],0.5f * this->window_width);
                 
                     // Add to the final project triangles
                     triProjected.color = color;
@@ -602,10 +609,6 @@ class W3DGraphics {
 
             // Draw the triangle on the server side if showGraphics is true 
             for (Triangle tri : projectedTriangles){
-                if (tri.t[0].u == -1){
-                    this->texturedTriangle(tri);
-                    continue;
-                }
                 this->texturedTriangle(tri);
             }
         }
