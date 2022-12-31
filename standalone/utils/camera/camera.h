@@ -34,6 +34,8 @@ class W3Camera {
         void moveBack();
         // Rotate Y
         void rotateY(float angle);
+        // Move up
+        void moveUp(float distance);
 
 };
 
@@ -81,6 +83,7 @@ void W3Camera::moveBack(){
     this->setTranslation(newPos);
 }
 
+
 // Rotates camera
 void W3Camera::rotateY(float angle){
     // Rotation mat
@@ -92,4 +95,11 @@ void W3Camera::rotateY(float angle){
     this->cameraMatrix = MatrixMultiplyMatrix(this->cameraMatrix,rot);
     // Restore transalation
     this->setTranslation(originalTranslation);
+}
+
+// Move up 
+void W3Camera::moveUp(float distance){
+    Vect3d camTrans = this->getTranslation();
+    camTrans.y += distance;
+    this->setTranslation(camTrans);
 }

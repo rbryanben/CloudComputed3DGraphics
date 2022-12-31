@@ -328,7 +328,7 @@ class W3DGraphics {
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
             instance = this;
-            //Set window width and height
+            //Set window width and heightObj
             this->window_height = windowHeight;
             window_width = windowHeight; 
             // Depth buffer 
@@ -374,7 +374,7 @@ class W3DGraphics {
 
             // Load the texture 
             this->texture = readPPM("./assets/objs/crate/crate.ppm");
-            this->mesh.LoadFromObjectFile("./assets/objs/cube.obj");
+            this->mesh.LoadFromObjectFile("./assets/objs/VideoShip.obj");
 
             // Apply some texture to the surface
             this->mesh.triangles[0].t[0].u = 0;
@@ -496,6 +496,12 @@ class W3DGraphics {
                 case 'd':
                     this->sceneCamera.rotateY(0.02);
                     break;
+                case 'o':
+                    this->sceneCamera.moveUp(0.02);
+                    break;
+                case 'l':
+                    this->sceneCamera.moveUp(-0.02);
+                    break;
                 
                 default:
                     break;
@@ -511,12 +517,14 @@ class W3DGraphics {
             
             //  Geometry (Rotation and Translation)
             Matrix4x4 matRotZ = getMatrixRotationZ(rotationAngle);
+            Matrix4x4 matRotX = getMatrixRotationX(rotationAngle);
 
             // Translate into Z by 5, otherwise we will not see the object because we are at (0,0,0)
             Matrix4x4 matTrans = Matrix_MakeTranslation(0.0f,0.0f,5.0f);
 
             // Create a matworld matrix by multiplying the 2 rotation matrixes, and then the mat translation 
             Matrix4x4 matWorld = MatrixMultiplyMatrix(matRotZ,matTrans);
+            //matWorld = MatrixMultiplyMatrix(matWorld,matTrans);
 
             //draw triangles 
             for (Triangle tri : this->mesh.triangles){
@@ -546,7 +554,9 @@ class W3DGraphics {
                 vCamera = {0,0,-1};
             
                 // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
-                Vect3d vCameraRay = triTransformed.p[0] - vCamera;
+                vCamera.y = this->sceneCamera.getTranslation().y;
+                Vect3d vCameraRay = triTransformed.p[0] - vCamera ;
+
 
                 if (VectorDotProduct(vCameraRay,normal) < 0
                     ){
@@ -556,60 +566,75 @@ class W3DGraphics {
                     NormalizeVector(lightSource);
 
                     float dt = f_max(VectorDotProduct(normal,lightSource),0);
-                    Color color = {abs(dt*1),abs(dt*1),abs(dt*1)};
+                    Color color = {f_max(abs(dt*1),0.2),f_max(abs(dt*1),0.2),f_max(abs(dt*1),0.2)};
+                    
 
                     // Camera viewd
                     Triangle triViewd; 
                     Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse(); 
+                    
                     MultiplyMatrixVector(triTransformed.p[0],triViewd.p[0],matViewd);
                     MultiplyMatrixVector(triTransformed.p[1],triViewd.p[1],matViewd);
                     MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
 
+                    triViewd.color = color;
+                    // Clip against z 
+                    Triangle triClippedAgainstZ[2];
+                    int t = Triangle_ClipAgainstPlane({0.f,0.f,2.f,1.f},{0.f,0.f,1.f,1.f},triViewd,triClippedAgainstZ[0],triClippedAgainstZ[1]);
 
-                    //
-                    // Project the matrix (Some normalization takes place here)
-                    float w0 = MultiplyMatrixVector(triViewd.p[0],triProjected.p[0],this->projectionMatrix);
-                    float w1 = MultiplyMatrixVector(triViewd.p[1],triProjected.p[1],this->projectionMatrix);
-                    float w2 = MultiplyMatrixVector(triViewd.p[2],triProjected.p[2],this->projectionMatrix);
+                    for (int i=0; i != t ; i++){                        
+                        //
+                        // Project the matrix (Some normalization takes place here)
+                        float w0 = MultiplyMatrixVector(triClippedAgainstZ[i].p[0],triProjected.p[0],this->projectionMatrix);
+                        float w1 = MultiplyMatrixVector(triClippedAgainstZ[i].p[1],triProjected.p[1],this->projectionMatrix);
+                        float w2 = MultiplyMatrixVector(triClippedAgainstZ[i].p[2],triProjected.p[2],this->projectionMatrix);
 
-                    // Copy the texture information to triProjected from triTransformed
-                    triProjected.t[0] = triTransformed.t[0];
-                    triProjected.t[1] = triTransformed.t[1];
-                    triProjected.t[2] = triTransformed.t[2];
+                        // Copy color 
+                        triProjected.color = triClippedAgainstZ[i].color;
 
-                    // Also normalize u and v , as z gets larger u and v get smaller 
-                    triProjected.t[0].u = triProjected.t[0].u / w0;
-                    triProjected.t[1].u = triProjected.t[1].u / w1;
-                    triProjected.t[2].u = triProjected.t[2].u / w2;
+                        // Copy the texture information to triProjected from triTransformed
+                        triProjected.t[0] = triTransformed.t[0];
+                        triProjected.t[1] = triTransformed.t[1];
+                        triProjected.t[2] = triTransformed.t[2];
 
-                    triProjected.t[0].v = triProjected.t[0].v / w0;
-                    triProjected.t[1].v = triProjected.t[1].v / w1;
-                    triProjected.t[2].v = triProjected.t[2].v / w2;  
+                        // Also normalize u and v , as z gets larger u and v get smaller 
+                        triProjected.t[0].u = triProjected.t[0].u / w0;
+                        triProjected.t[1].u = triProjected.t[1].u / w1;
+                        triProjected.t[2].u = triProjected.t[2].u / w2;
 
-                    triProjected.t[0].w = 1.f / w0;
-                    triProjected.t[1].w = 1.f / w1;
-                    triProjected.t[2].w = 1.f / w2;  
+                        triProjected.t[0].v = triProjected.t[0].v / w0;
+                        triProjected.t[1].v = triProjected.t[1].v / w1;
+                        triProjected.t[2].v = triProjected.t[2].v / w2;  
 
-                    //Offset to the center of the screen 
-                    Vect3d vOffsetView = {1,1,0};
-                    triProjected.p[0] = triProjected.p[0] + vOffsetView;
-                    triProjected.p[1] = triProjected.p[1] + vOffsetView;
-                    triProjected.p[2] = triProjected.p[2] + vOffsetView;
-                    
-                    // Scale to the window width 
-                    VectorMultiplyFloat(triProjected.p[0],0.5f * this->window_width);
-                    VectorMultiplyFloat(triProjected.p[1],0.5f * this->window_width);
-                    VectorMultiplyFloat(triProjected.p[2],0.5f * this->window_width);
-                
-                    // Add to the final project triangles
-                    triProjected.color = color;
-                    projectedTriangles.push_back(triProjected);
+                        triProjected.t[0].w = 1.f / w0;
+                        triProjected.t[1].w = 1.f / w1;
+                        triProjected.t[2].w = 1.f / w2;  
+
+                        //Offset to the center of the screen 
+                        Vect3d vOffsetView = {1,1,0};
+                        triProjected.p[0] = triProjected.p[0] + vOffsetView;
+                        triProjected.p[1] = triProjected.p[1] + vOffsetView;
+                        triProjected.p[2] = triProjected.p[2] + vOffsetView;
+                        
+                        // Scale to the window width 
+                        triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
+                        triProjected.p[1] = triProjected.p[1] * (0.5f * this->window_width);
+                        triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
+                        
+
+                        if (triProjected.color.red == 0 && triProjected.color.green == 0 && triProjected.color.blue == 0){
+                            int a = 2;
+                        }
+                        projectedTriangles.push_back(triProjected);
+                    }
                 }
             }
 
+            projectedTriangles = sortTriangleList(projectedTriangles);
+
             // Draw the triangle on the server side if showGraphics is true 
             for (Triangle tri : projectedTriangles){
-                this->texturedTriangle(tri);
+                this->drawTriangle(tri);
             }
         }
 };
@@ -617,11 +642,9 @@ class W3DGraphics {
 // Test With UI
 int main(int argc, char **argv)
 {
-
     // Engine instance
     W3DGraphics graphicsEngine = W3DGraphics(800,800);
     graphicsEngine.init(argc,argv);
 
-    
     return 0;
 }

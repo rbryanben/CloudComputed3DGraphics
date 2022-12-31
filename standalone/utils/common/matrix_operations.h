@@ -169,10 +169,4 @@ Matrix4x4 Matrix_QuickInverse(Matrix4x4 &m) // Only for Rotation/Translation Mat
 }
 
 
-
-Matrix4x4 Inverse4x4(Matrix4x4 &matrix){
-    Matrix4x4 res;
-
-}
-
 #endif

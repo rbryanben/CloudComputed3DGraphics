@@ -270,4 +270,100 @@ vector<Triangle> sortTriangleList(vector<Triangle> triangleList){
     return greater;
 }
 
+Vect3d VectorNormalize(Vect3d &v1){
+    float l = VectorLength(v1);
+    if (l != 0){
+        return {v1.x / l , v1.y / l, v1.z / l, 1};
+    }
+    return {v1.x,v1.y,v1.z,1};
+}
+
+
+// Calculates where a vector intersects a plane
+Vect3d vectorIntersectPlane(Vect3d plane_p, Vect3d plane_n, Vect3d lineStart,Vect3d lineEnd){
+    plane_n = VectorNormalize(plane_p);
+    float plane_d = -VectorDotProduct(plane_n,plane_p);
+    float ad = VectorDotProduct(lineStart,plane_n);
+    float bd = VectorDotProduct(lineEnd,plane_n);
+    float t = (-plane_d - ad) / (bd - ad);
+    Vect3d lineStartToEnd = lineEnd - lineStart;
+    Vect3d lineIntersect = lineStartToEnd * t ;
+    return lineStart + lineIntersect;
+}
+
+// Tirangle clip against plane 
+int Triangle_ClipAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri,Triangle &out_tri1,Triangle &out_tri2){
+    //make sure normal is indeed normal
+    plane_n = VectorNormalize(plane_n);
+
+    //Returns shortest distance from point to a plane
+    auto dist = [&](Vect3d &p){
+        Vect3d n = VectorNormalize(p);
+        return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - VectorDotProduct(plane_n,plane_p));
+    };
+
+    //Create two temporary storage arrays to classify points either side of the plane
+    //if the distance is positibe, point lies inside the plane
+    vector<Vect3d> inside_points;
+    vector<Vect3d> outside_points;
+
+    // get signed distance from each point in triangle to the plane
+    float d0 = dist(in_tri.p[0]);
+    float d1 = dist(in_tri.p[1]);
+    float d2 = dist(in_tri.p[2]);
+
+    if (d0 >= 0) inside_points.push_back(in_tri.p[0]);
+    else outside_points.push_back(in_tri.p[0]);
+    if (d1 >= 0) inside_points.push_back(in_tri.p[1]);
+    else outside_points.push_back(in_tri.p[1]);
+    if (d2 >= 0) inside_points.push_back(in_tri.p[2]);
+    else outside_points.push_back(in_tri.p[2]); 
+
+    if (inside_points.size() == 0) return 0; //dont draw any
+
+    if (inside_points.size() == 3){ 
+        out_tri1.color = in_tri.color;
+        out_tri1.p[0] = in_tri.p[0];
+        out_tri1.p[1] = in_tri.p[1];
+        out_tri1.p[2] = in_tri.p[2];
+        return 1;
+    }
+
+    // 2 points are outside
+    if (inside_points.size() == 1 && outside_points.size() == 2){
+        out_tri1.color = {0,0,1};
+
+        //inside point is valid we keep that 
+        out_tri1.p[0] = inside_points[0];
+
+        //but the two new points are at the locations where the 
+	    //original sides of the triangle (lines) intersect with the plane
+        out_tri1.p[1] = vectorIntersectPlane(plane_p,plane_n,inside_points[0],outside_points[0]);
+        out_tri1.p[2] = vectorIntersectPlane(plane_p,plane_n,inside_points[0],outside_points[1]);
+        return 1;
+    }
+    
+    if (inside_points.size() == 2 && outside_points.size() == 1){
+        out_tri2.color = in_tri.color;
+        out_tri1.color = in_tri.color;
+
+        //The first triangle consists of the two inside points and a new
+		//point determined by the location where one side of the triangle
+		//intersects with the plane
+        out_tri1.p[0] = inside_points[0];
+        out_tri1.p[1] = inside_points[1];
+        out_tri1.p[2] = vectorIntersectPlane(plane_p,plane_n,inside_points[1],outside_points[0]);
+
+        out_tri2.p[0] = inside_points[0];
+        out_tri2.p[1] = vectorIntersectPlane(plane_p,plane_n,inside_points[1],outside_points[0]);
+        out_tri2.p[2] = vectorIntersectPlane(plane_p,plane_n,inside_points[0],outside_points[0]);
+
+        out_tri1.color = {1,0,0};
+        out_tri2.color = {0,1,0};
+        return 2;
+    }
+}
+
+
+
 #endif
