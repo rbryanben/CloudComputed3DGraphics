@@ -1,8 +1,10 @@
-#include <catch2/catch_all.hpp>
+#include <gtest/gtest.h>
 
+TEST(SquareRootTest, NegativeNos){
+    ASSERT_EQ(1,2);
+}
 
-// Test demonstration 
-TEST_CASE("Demo"){
-    REQUIRE(1 == 2);
-};
-
+int main(int argc, char **argv) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
