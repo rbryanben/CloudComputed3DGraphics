@@ -139,7 +139,7 @@ class olcEngine3d:
 
         #load mesh 
         self.meshCube = mesh()
-        self.meshCube.LoadFromObjectFile("./objs/mountains.obj")
+        self.meshCube.LoadFromObjectFile("./objs/VideoShip.obj")
 
 
     def drawTriangle(self,tri: triangle,color):

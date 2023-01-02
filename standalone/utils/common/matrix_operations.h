@@ -12,6 +12,7 @@ float MultiplyMatrixVector(Vect3d &i, Vect3d &o, Matrix4x4 &m){
     o.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + m.m[3][2]; 		
     float w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + m.m[3][3]; 		// is simply z 
     o.w = w;
+
     // Normalize Z - as Z is larger x and y get smaller
     if (w != 0.0f) { 			
         o.x /= w; 
@@ -23,7 +24,7 @@ float MultiplyMatrixVector(Vect3d &i, Vect3d &o, Matrix4x4 &m){
 }
 
 
-// Vector Multiply Matrix 
+// Vector Multiply Matrix & Normalize Z
 Vect3d MatrixMultiplyVector(Matrix4x4 &matrix,Vect3d &vector){
     Vect3d res;
     res.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] +  matrix.m[3][0];
@@ -64,8 +65,6 @@ Matrix4x4 getMatrixRotationZ(float rotationAngle){
     return matRotZ;
 }
 
-
-
 // Return a rotation matrix on axis X
 Matrix4x4 getMatrixRotationX(float rotationAngle){
     Matrix4x4 matRotX;
@@ -79,6 +78,7 @@ Matrix4x4 getMatrixRotationX(float rotationAngle){
     return matRotX;
 }
 
+// Rotation Y
 Matrix4x4 getMatrixRotationY(float rotationAngle){
     Matrix4x4 matRotY = Matrix4x4_MakeIdentity();
     matRotY.m[0][0] = cosf(rotationAngle);
@@ -88,9 +88,6 @@ Matrix4x4 getMatrixRotationY(float rotationAngle){
 
     return matRotY;
 }
-
-
-
 
 // Make Translation
 Matrix4x4 Matrix_MakeTranslation(float x, float y, float z){
@@ -130,31 +127,36 @@ Matrix4x4 MatrixMultiplyMatrix(Matrix4x4 &a, Matrix4x4 &b){
     return res;
 }
 
-Matrix4x4 MatrixPointAt(Vect3d &pos,Vect3d &target,Vect3d &up){
-    Matrix4x4 res;
-
-    //calculate new forward 
-    Vect3d newFoward = target - pos;
-    NormalizeVector(newFoward);
-
-    //calculate the new forward
-    Vect3d a = VectorMultiplyFloat_Return(newFoward,VectorDotProduct(up,newFoward));
-    Vect3d newUp = up - a ;
-    NormalizeVector(newUp);
+// Fast matrix multiplication
+Matrix4x4 MatrixMultiplyMatrixDirect(Matrix4x4 &a, Matrix4x4 &b){
+    Matrix4x4 res; 
+    res.m[0][0] = b.m[3][0]*a.m[0][3]+a.m[0][0]*b.m[0][0]+a.m[0][1]*b.m[1][0]+a.m[0][2]*b.m[2][0]; 
+    res.m[0][1] = b.m[3][1]*a.m[0][3]+a.m[0][0]*b.m[0][1]+a.m[0][1]*b.m[1][1]+a.m[0][2]*b.m[2][1]; 
+    res.m[0][2] = b.m[2][2]*a.m[0][2]+b.m[3][2]*a.m[0][3]+a.m[0][0]*b.m[0][2]+a.m[0][1]*b.m[1][2]; 
+    res.m[0][3] = b.m[2][3]*a.m[0][2]+b.m[3][3]*a.m[0][3]+a.m[0][0]*b.m[0][3]+a.m[0][1]*b.m[1][3]; 
 
 
-    // Orthogonal vector - derived from the cross product of the up and new Forward
-    Vect3d orthorgonal = VectorCrossProduct(newFoward,newUp);
+    res.m[1][0] = b.m[3][0]*a.m[1][3]+a.m[1][1]*b.m[1][0]+a.m[1][2]*b.m[2][0]+b.m[0][0]*a.m[1][0];
+    res.m[1][1] = b.m[3][1]*a.m[1][3]+a.m[1][1]*b.m[1][1]+a.m[1][2]*b.m[2][1]+b.m[0][1]*a.m[1][0];
+    res.m[1][2] = b.m[2][2]*a.m[1][2]+b.m[3][2]*a.m[1][3]+a.m[1][1]*b.m[1][2]+b.m[0][2]*a.m[1][0];
+    res.m[1][3] = b.m[2][3]*a.m[1][2]+b.m[3][3]*a.m[1][3]+a.m[1][1]*b.m[1][3]+b.m[0][3]*a.m[1][0];
+
+
+    res.m[2][0] = b.m[3][0]*a.m[2][3]+a.m[2][0]*b.m[0][0]+a.m[2][1]*b.m[1][0]+a.m[2][2]*b.m[2][0]; 
+    res.m[2][1] = b.m[3][1]*a.m[2][3]+a.m[2][0]*b.m[0][1]+a.m[2][1]*b.m[1][1]+a.m[2][2]*b.m[2][1]; 
+    res.m[2][2] = b.m[2][2]*a.m[2][2]+b.m[3][2]*a.m[2][3]+a.m[2][0]*b.m[0][2]+a.m[2][1]*b.m[1][2]; 
+    res.m[2][3] = b.m[2][3]*a.m[2][2]+b.m[3][3]*a.m[2][3]+a.m[2][0]*b.m[0][3]+a.m[2][1]*b.m[1][3];
     
+    res.m[3][0] = b.m[3][0]*a.m[3][3]+a.m[3][0]*b.m[0][0]+a.m[3][1]*b.m[1][0]+a.m[3][2]*b.m[2][0]; 
+    res.m[3][1] = b.m[3][1]*a.m[3][3]+a.m[3][0]*b.m[0][1]+a.m[3][1]*b.m[1][1]+a.m[3][2]*b.m[2][1]; 
+    res.m[3][2] = b.m[2][2]*a.m[3][2]+b.m[3][2]*a.m[3][3]+a.m[3][0]*b.m[0][2]+a.m[3][1]*b.m[1][2]; 
+    res.m[3][3] = b.m[2][3]*a.m[3][2]+b.m[3][3]*a.m[3][3]+a.m[3][0]*b.m[0][3]+a.m[3][1]*b.m[1][3];
 
-    // Fix here (incomplete)
-    res.m[0][0] = orthorgonal.x; res.m[0][1] = orthorgonal.y ; res.m[0][2] = orthorgonal.z;
-    res.m[1][0] = newUp.x; res.m[1][1] = newUp.y ; res.m[1][2] = newUp.z;
-    res.m[2][0] = newFoward.x; res.m[2][1] = newFoward.y, res.m[2][2] = newFoward.z;
-    res.m[3][0] = pos.x; res.m[3][1] = pos.y; res.m[3][2] = pos.z; res.m[3][3] = 1.0f;
-    return res;
+    return res ;
 }
 
+
+// Inverts matrice
 Matrix4x4 Matrix_QuickInverse(Matrix4x4 &m) // Only for Rotation/Translation Matrices
 {
     Matrix4x4 matrix;

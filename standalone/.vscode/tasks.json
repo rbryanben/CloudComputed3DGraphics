@@ -12,7 +12,7 @@
                 "${fileDirname}/${fileBasenameNoExtension}",
                 "-lglut",
                 "-lGL",
-                "-lX11"
+                "-lgtest"
             ],
             "options": {
                 "cwd": "${fileDirname}"
