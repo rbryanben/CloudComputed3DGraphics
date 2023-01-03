@@ -8,6 +8,16 @@
 #include <strstream>
 using namespace std;
 
+float round_(float var)
+{
+    // 37.66666 * 100 =3766.66
+    // 3766.66 + .5 =3767.16    for rounding off value
+    // then type cast to int so value is 3767
+    // then divided by 100 so the value converted into 37.67
+    float value = (int)(var * 100 + .5);
+    return (float)value / 100;
+}
+
 //Vect3d 
 struct Vect3d{
     float x,y,z;
@@ -33,6 +43,13 @@ struct Vect3d{
 
     Vect3d operator * (float multiplier){
         return {this->x * multiplier, this->y * multiplier, this->z * multiplier, 1};
+    }
+
+    bool operator == (Vect3d other){
+        if (round_(x) == round_(other.x) && round_(y) == round_(other.y) && round_(z) == round_(other.z)){
+            return true;
+        }
+        return false;
     }
 };
 
@@ -460,6 +477,7 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
         return res;
     }
     
+    // One outside point - form two new triangles 
     if (inside_points.size() == 2 && outside_points.size() == 1){
         out_tri2.color = in_tri.color;
         out_tri1.color = in_tri.color;

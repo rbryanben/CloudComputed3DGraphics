@@ -45,6 +45,51 @@ TEST(test_matrices,matrix_matrix_multiplication){
     ASSERT_EQ((a*b).getHash(),a_dot_b.getHash());
 }
 
+
+// Test Clipping of triangle 
+TEST(clipping,triangle_clipping_against_plane_Z){
+    
+    Vect3d zPoint = {0,0,0.1f,1};
+    Vect3d intersection_a, intersection_b;
+
+    // One point out
+    Triangle test_1 = {3,0,-8,1, 3,2,1,1, 4,7,1,1 };
+    intersection_a = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_1.p[0],test_1.p[1]);
+    intersection_b = vectorIntersectPlane(zPoint,{0,0,1,1},test_1.p[0],test_1.p[2]);
+    vector<Triangle> clippedTriangles = clipTriangleAgainstPlane(zPoint,{0,0,1,1},test_1); 
+
+    ASSERT_TRUE(clippedTriangles[0].p[0] == test_1.p[1]);
+    ASSERT_TRUE(clippedTriangles[0].p[1] == test_1.p[2]);
+    ASSERT_TRUE(clippedTriangles[0].p[2] == intersection_b);
+
+    ASSERT_TRUE(clippedTriangles[1].p[0] == test_1.p[1]);
+    ASSERT_TRUE(clippedTriangles[1].p[1] == intersection_b);
+    ASSERT_TRUE(clippedTriangles[1].p[2] == intersection_a);
+
+    // two points out
+    Triangle test_2 = {3,0,-8,1, 3,2,1,1, 4,7,-1,1 };
+    intersection_a = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_2.p[1],test_2.p[0]);
+    intersection_b = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_2.p[1],test_2.p[2]);
+    clippedTriangles = clipTriangleAgainstPlane(zPoint,{0,0,1,1},test_2); 
+
+    ASSERT_TRUE(clippedTriangles[0].p[0] == test_1.p[1]);
+    ASSERT_TRUE(clippedTriangles[0].p[2] == intersection_b);
+    ASSERT_TRUE(clippedTriangles[0].p[1] == intersection_a);
+
+    // All points out
+    Triangle test_3 = {3,0,-8,1, 3,2,-1,1, 4,7,-1,1 };
+    clippedTriangles = clipTriangleAgainstPlane(zPoint,{0,0,1,1},test_3);
+    ASSERT_TRUE(clippedTriangles.size() == 0);
+
+    // All points in
+    Triangle test_4 = {3,0,8,1, 3,2,1,1, 4,7,1,1 };
+    clippedTriangles = clipTriangleAgainstPlane(zPoint,{0,0,1,1},test_4);
+
+    ASSERT_TRUE(test_4.p[0]== clippedTriangles[0].p[0]);
+    ASSERT_TRUE(test_4.p[1]== clippedTriangles[0].p[1]);
+    ASSERT_TRUE(test_4.p[2]== clippedTriangles[0].p[2]);
+}
+
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
