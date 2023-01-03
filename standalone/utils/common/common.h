@@ -405,5 +405,15 @@ int Triangle_ClipAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri,Tri
 }
 
 
+Vect3d getTriangleNormal(Triangle &tri){
+    Vect3d normal,line1,line2;
+    line1 = tri.p[1] - tri.p[0];
+    line2 = tri.p[2] - tri.p[0]; 
+    normal = VectorCrossProduct(line1,line2);
+    NormalizeVector(normal);
+    return normal;
+}
+
+
 
 #endif

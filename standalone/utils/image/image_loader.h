@@ -49,6 +49,13 @@ class Image{
             c = std::max(c,0);
             return this->matrix[(r * width)+c];
         }
+
+        bool hasData(){
+            if (this->height == 0){
+                return false;
+            }
+            return true;
+        }
 };
 
 

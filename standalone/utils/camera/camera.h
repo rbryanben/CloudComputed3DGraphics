@@ -6,17 +6,21 @@ class W3Camera {
     public:
         //Camera matrix
         Matrix4x4 cameraMatrix; 
-        float movementSpeed = 0.f; 
+        float movementSpeed = 0.2f; 
 
         // Constructor 
         W3Camera(float movementSpeed){
             this->cameraMatrix = getMatrixRotationY(0.f);
-            this->movementSpeed = 0.02f;
+            this->movementSpeed = movementSpeed;
         }
 
         W3Camera(){
             this->cameraMatrix = getMatrixRotationY(0.f);
-            this->movementSpeed = movementSpeed;
+        }
+
+        W3Camera(Vect3d position){
+            this->cameraMatrix = getMatrixRotationY(0.f);
+            this->setTranslation(position);
         }
 
         // Translate 

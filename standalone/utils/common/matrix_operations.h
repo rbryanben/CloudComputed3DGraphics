@@ -170,5 +170,13 @@ Matrix4x4 Matrix_QuickInverse(Matrix4x4 &m) // Only for Rotation/Translation Mat
     return matrix;
 }
 
+// Scaling 
+Matrix4x4 getScalingMatrix(float scale){
+    Matrix4x4 res = Matrix4x4_MakeIdentity();
+    res.m[0][0] = scale;
+    res.m[1][1] = scale;
+    res.m[2][2] = scale;
+    return res;
+}
 
 #endif

@@ -308,6 +308,16 @@ class W3DGraphics {
                 glVertex2f(tri.p[2].x,tri.p[2].y);
                 glVertex2f(tri.p[0].x,tri.p[0].y);
             glEnd();
+  
+            glBegin(GL_LINES);
+                glColor3f(1.f,0,0);
+                glVertex2f(tri.p[0].x,tri.p[0].y);
+                glVertex2f(tri.p[1].x,tri.p[1].y);
+                glVertex2f(tri.p[1].x,tri.p[1].y);
+                glVertex2f(tri.p[2].x,tri.p[2].y);
+                glVertex2f(tri.p[2].x,tri.p[2].y);
+                glVertex2f(tri.p[0].x,tri.p[0].y);
+            glEnd();
         }
         
     public:
@@ -316,11 +326,16 @@ class W3DGraphics {
         Image texture; 
         // Objects List
         Mesh mesh;
+        Mesh lightBox;
+    
         // Camera 
         Vect3d vCamera;
 
         // W3Camera
         W3Camera sceneCamera; 
+
+        //illumination
+        Vect3d lightSource = {0,0,-5};
         
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
@@ -370,9 +385,10 @@ class W3DGraphics {
                 0.1f);
 
             // Load the texture 
-            this->texture = readPPM("./assets/objs/engine/texture.ppm");
+            //this->texture = readPPM("./assets/objs/engine/texture.ppm");
+            this->lightBox.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
             this->mesh.LoadFromObjectFile("./assets/objs/engine/Neck_Mech_Walker_by_3DHaupt-(Wavefront OBJ).obj",true);
-
+            
     
             // Set Black Background of window
             glClearColor(0,0, 0, 1); 
@@ -381,7 +397,7 @@ class W3DGraphics {
             glOrtho(0.0,this->window_width,this->window_height,0.0,0,1000);
 
             // Configure camera
-            this->sceneCamera = W3Camera(0.02f);
+            this->sceneCamera = W3Camera({0,0,-5,1});
         }
         
         // onUserInput
@@ -410,7 +426,18 @@ class W3DGraphics {
                 case 'l':
                     this->sceneCamera.moveUp(-0.2);
                     break;
-                
+                case '[':
+                    this->lightSource.x -= 5 ;
+                    break;
+                case ']':
+                    this->lightSource.x += 5 ;
+                    break;
+                case 'p':
+                    this->lightSource.z += 5 ;
+                    break;
+                case ';':
+                    this->lightSource.z -= 5 ;
+                    break;
                 default:
                     break;
             }
@@ -424,20 +451,18 @@ class W3DGraphics {
             vector<Triangle> projectedTriangles;
             
             //  Geometry (Rotation and Translation)
-            Matrix4x4 matRotZ = getMatrixRotationZ(rotationAngle);
-            Matrix4x4 matRotX = getMatrixRotationY(rotationAngle);
+            //Matrix4x4 matRotZ = getMatrixRotationZ(rotationAngle);
+            //Matrix4x4 matRotX = getMatrixRotationY(rotationAngle);
 
             // Camera Matrix
             Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse(); 
+            
 
             //Offset to the center of the screen 
             Vect3d vOffsetView = {1,1,0};
 
             // Translate into Z by 5, otherwise we will not see the object because we are at (0,0,0)
-            Matrix4x4 matTrans = Matrix_MakeTranslation(0.0f,0.0f,5.0f);
-
-            // Create a matworld matrix by multiplying the 2 rotats, and then the mat translation 
-            Matrix4x4 matWorld = matRotX * matTrans;
+            Matrix4x4 matWorld = Matrix_MakeTranslation(0.0f,0.0f,0.0f);
 
             //draw triangles 
             for (Triangle tri : this->mesh.triangles){
@@ -464,22 +489,14 @@ class W3DGraphics {
                 NormalizeVector(normal);
 
 
-                vCamera = {0,0,-1};
-            
                 // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
-                vCamera.y = this->sceneCamera.getTranslation().y;
-                Vect3d vCameraRay = triTransformed.p[0] - vCamera ;
-
+                Vect3d vCameraRay = triTransformed.p[0] - this->sceneCamera.getTranslation();
 
                 if (VectorDotProduct(vCameraRay,normal) < 0
                     ){
 
-                    //illumination
-                    Vect3d lightSource = {0,5,-5}; 
-                    NormalizeVector(lightSource);
-
                     float dt = f_max(VectorDotProduct(normal,lightSource),0);
-                    Color color = {f_max(abs(dt*1),0.05),f_max(abs(dt*1),0.05),f_max(abs(dt*1),0.05)};
+                    Color color = {f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f)};
                     
 
                     // Camera viewd
@@ -525,26 +542,109 @@ class W3DGraphics {
                     triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
                     
 
-                    if (triProjected.color.red == 0 && triProjected.color.green == 0 && triProjected.color.blue == 0){
-                        int a = 2;
-                    }
+                    triProjected.color = color;
                     projectedTriangles.push_back(triProjected);
                     
                 }
             }
 
-            //projectedTriangles = sortTriangleList(projectedTriangles);
-
-             // Clear depth buffer 
-            for (u_int i = 0; i != this->window_height * window_width; i++){
-                this->depthBuffer[i] = 0 ; 
-            }
-
             // Draw the triangle on the server side if showGraphics is true 
-            for (Triangle tri : projectedTriangles){
-                this->texturedTriangle(tri);
+            if (this->texture.hasData()){
+                // Clear depth buffer 
+                for (u_int i = 0; i != this->window_height * window_width; i++){
+                    this->depthBuffer[i] = 0 ; 
+                }
+                for (Triangle tri : projectedTriangles){
+                
+                    this->texturedTriangle(tri);
+                }
             }
+            else {
+                projectedTriangles = sortTriangleList(projectedTriangles);
+                for (Triangle tri : projectedTriangles){
+                    this->drawTriangle(tri);
+                }
+                
+            }
+
+            renderObjectToPosition(this->lightBox,this->lightSource,{1,1,0});
         }
+
+
+        void renderObjectToPosition(Mesh &object,Vect3d position,Color color){
+            // Final projected colors and triangles 
+            vector<Triangle> projectedTriangles;
+            
+            // Translation Matrix
+            Matrix4x4 translationMatrix =  Matrix_MakeTranslation(position.x,position.y,position.z);
+            Matrix4x4 scaleMatrix = getScalingMatrix(0.02f);
+            Matrix4x4 matWorld =translationMatrix * scaleMatrix;
+
+            //draw triangles 
+            for (Triangle tri : object.triangles){
+                Triangle triProjected,triTransformed;
+                
+                // Translate points 
+                triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
+                triTransformed.p[1] = MatrixMultiplyVector(matWorld,tri.p[1]);
+                triTransformed.p[2] = MatrixMultiplyVector(matWorld,tri.p[2]); 
+
+
+                // Determine the normal so that we do not draw triangles that are not facing us
+                Vect3d normal = getTriangleNormal(triTransformed);
+
+                // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
+                Vect3d vCameraRay = triTransformed.p[0] - this->sceneCamera.getTranslation();
+                
+                //Offset to the center of the screen 
+                Vect3d vOffsetView = {1,1,0};
+
+                if (VectorDotProduct(vCameraRay,normal) < 0
+                    ){
+
+                    float dt = f_max(VectorDotProduct(normal,lightSource),0);
+                    //Color color = {f_max(abs(dt*color.red),0.2f),f_max(abs(dt*color.green),0.2f),f_max(abs(dt*color.blue),0.2f)};
+
+                    // Camera viewd
+                    Triangle triViewd; 
+                    Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse();
+                    
+                    MultiplyMatrixVector(triTransformed.p[0],triViewd.p[0],matViewd);
+                    MultiplyMatrixVector(triTransformed.p[1],triViewd.p[1],matViewd);
+                    MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
+      
+                    //
+                    // Project the matrix (Some Z normalization takes place here)
+                    float w0 = MultiplyMatrixVector(triViewd.p[0],triProjected.p[0],this->projectionMatrix);
+                    float w1 = MultiplyMatrixVector(triViewd.p[1],triProjected.p[1],this->projectionMatrix);
+                    float w2 = MultiplyMatrixVector(triViewd.p[2],triProjected.p[2],this->projectionMatrix);
+
+                
+                    // offset
+                    triProjected.p[0] = triProjected.p[0] + vOffsetView;
+                    triProjected.p[1] = triProjected.p[1] + vOffsetView;
+                    triProjected.p[2] = triProjected.p[2] + vOffsetView;
+                    
+                    // Scale to the window width 
+                    triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
+                    triProjected.p[1] = triProjected.p[1] * (0.5f * this->window_width);
+                    triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
+                    
+
+                    triProjected.color = color;
+                    projectedTriangles.push_back(triProjected);
+                    
+                }
+            }
+
+            projectedTriangles = sortTriangleList(projectedTriangles);
+            for (Triangle tri : projectedTriangles){
+                this->drawTriangle(tri);
+            }
+                
+        };
+
+
 };
 
 // Test With UI
