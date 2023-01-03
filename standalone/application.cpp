@@ -308,7 +308,7 @@ class W3DGraphics {
                 glVertex2f(tri.p[2].x,tri.p[2].y);
                 glVertex2f(tri.p[0].x,tri.p[0].y);
             glEnd();
-  
+            return;
             glBegin(GL_LINES);
                 glColor3f(1.f,0,0);
                 glVertex2f(tri.p[0].x,tri.p[0].y);
@@ -335,7 +335,7 @@ class W3DGraphics {
         W3Camera sceneCamera; 
 
         //illumination
-        Vect3d lightSource = {0,0,-5};
+        Vect3d lightSource = {0,0,0};
         
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
@@ -387,7 +387,7 @@ class W3DGraphics {
             // Load the texture 
             //this->texture = readPPM("./assets/objs/engine/texture.ppm");
             this->lightBox.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
-            this->mesh.LoadFromObjectFile("./assets/objs/engine/Neck_Mech_Walker_by_3DHaupt-(Wavefront OBJ).obj",true);
+            this->mesh.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
             
     
             // Set Black Background of window
