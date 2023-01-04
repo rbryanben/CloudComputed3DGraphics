@@ -45,7 +45,6 @@ TEST(test_matrices,matrix_matrix_multiplication){
     ASSERT_EQ((a*b).getHash(),a_dot_b.getHash());
 }
 
-
 // Test Clipping of triangle 
 TEST(clipping,triangle_clipping_against_plane_Z){
     
@@ -88,7 +87,18 @@ TEST(clipping,triangle_clipping_against_plane_Z){
     ASSERT_TRUE(test_4.p[0]== clippedTriangles[0].p[0]);
     ASSERT_TRUE(test_4.p[1]== clippedTriangles[0].p[1]);
     ASSERT_TRUE(test_4.p[2]== clippedTriangles[0].p[2]);
-}
+};
+
+// Test Plane intersection
+TEST(lines,line_intersect_plane){
+    Vect3d point1 = {2,3,1};
+    Vect3d point2 = {10,3,2};
+    Vect3d ans = {8.f,3.f,1.75f,1.f};
+    //intersection with plane x = 8 
+    Vect3d intersection = vectorIntersectPlane({8,0,0,1},{-1,0,0,1},point1,point2);
+
+    ASSERT_TRUE(intersection == ans);
+};
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
