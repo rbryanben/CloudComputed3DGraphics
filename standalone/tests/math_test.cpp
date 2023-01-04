@@ -129,6 +129,7 @@ TEST(clipping,triangle_clipping_against_right_screen){
     ASSERT_TRUE(clipped[1].p[2] == intersection_a);
 }
 
+
 // Test Plane intersection
 TEST(lines,line_intersect_plane){
     Vect3d point1 = {2,3,1};

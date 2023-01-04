@@ -431,6 +431,21 @@ int Triangle_ClipAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri,Tri
     }
 }
 
+vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri);
+
+vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,vector<Triangle> triangles){
+    vector<Triangle> res;
+    //loop through all triangles and clip, then add the result to the final res
+    for (Triangle tri: triangles){
+        vector<Triangle> clipped = clipTriangleAgainstPlane(plane_p,plane_n,tri);
+        // Add triangle to res (Not optimum)
+        for (Triangle tri : clipped){
+            res.push_back(tri);
+        }
+    }
+
+    return res;
+}
 
 vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri){
     vector<Triangle> res; 
@@ -467,6 +482,7 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
 
     // All points are inside 
     if (inside_points.size() == 3){ 
+
         res.push_back(in_tri);
         return res;
     }
@@ -489,9 +505,6 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
     
     // One outside point - form two new triangles 
     if (inside_points.size() == 2 && outside_points.size() == 1){
-        out_tri2.color = in_tri.color;
-        out_tri1.color = in_tri.color;
-
         //The first triangle consists of the two inside points and a new
 		//point determined by the location where one side of the triangle
 		//intersects with the plane
