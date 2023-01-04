@@ -68,6 +68,16 @@ struct Triangle
     Vect3d p[3];
     Vect2d t[3];
     Color color ;
+
+    bool operator ==  (Triangle &other){
+        if (other.p[0] == p[0]
+            && other.p[1] == p[1]
+            && other.p[2] == p[2]){
+                return true;
+            }
+
+        return false;
+    }
 };
 
 
