@@ -385,9 +385,9 @@ class W3DGraphics {
                 0.1f);
 
             // Load the texture 
-            //this->texture = readPPM("./assets/objs/engine/texture.ppm");
+            this->texture = readPPM("./assets/objs/engine/texture.ppm");
             this->lightBox.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
-            this->mesh.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
+            this->mesh.LoadFromObjectFile("./assets/objs/engine/Neck_Mech_Walker_by_3DHaupt-(Wavefront OBJ).obj",true);
             
     
             // Set Black Background of window
@@ -564,10 +564,25 @@ class W3DGraphics {
                 for (u_int i = 0; i != this->window_height * window_width; i++){
                     this->depthBuffer[i] = 0 ; 
                 }
-                for (Triangle tri : projectedTriangles){
-                
+
+                // Triangle clipped against screen edges 
+                //
+                vector<Triangle> clippedTrianglesList;
+
+
+                // Clip against the top of the screen
+                vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
+                // Clip against bottom of the screen
+                vector<Triangle> bottomClipped = clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
+                //Clip against
+                vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
+                // Clip against right of the screen
+                vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
+
+                for (Triangle tri: rightClipped){
                     this->texturedTriangle(tri);
                 }
+            
             }
             // No texture
             else {
@@ -583,7 +598,7 @@ class W3DGraphics {
                 // Clip against bottom of the screen
                 vector<Triangle> bottomClipped = clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
                 //Clip against
-                vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},topClipped);
+                vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
                 // Clip against right of the screen
                 vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
 
