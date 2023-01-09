@@ -486,10 +486,7 @@ class W3DGraphics {
                 triTransformed.p[2] = MatrixMultiplyVector(matWorld,tri.p[2]); 
 
                 //Copy texture
-                triTransformed.t[0] = tri.t[0];
-                triTransformed.t[1] = tri.t[1];
-                triTransformed.t[2] = tri.t[2];
-                
+                triTransformed.copyTextureFrom(tri);
 
                 // Determine the normal so that we do not draw triangles that are not facing us
                 Vect3d normal,line1,line2 ;
@@ -516,11 +513,9 @@ class W3DGraphics {
                     MultiplyMatrixVector(triTransformed.p[1],triViewd.p[1],matViewd);
                     MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
 
-                    triViewd.color = color;
-                    
-                    triViewd.t[0] = triTransformed.t[0];
-                    triViewd.t[1] = triTransformed.t[1];
-                    triViewd.t[2] = triTransformed.t[2];
+                    // Copy texture
+                    triViewd.copyTextureFrom(triTransformed);
+
                     // Clip the triangles against the axis
                     vector<Triangle> clippedZ = clipTriangleAgainstPlane({0,0,1.1f,1},{0,0,1,1},triViewd); 
 
@@ -533,9 +528,7 @@ class W3DGraphics {
                         float w2 = MultiplyMatrixVector(tri.p[2],triProjected.p[2],this->projectionMatrix);
 
                         // Copy the texture information to triProjected from triTransformed
-                        triProjected.t[0] = tri.t[0];
-                        triProjected.t[1] = tri.t[1];
-                        triProjected.t[2] = tri.t[2];
+                        triProjected.copyTextureFrom(tri);
 
                         // Also normalize u and v , as z gets larger u and v get smaller 
                         // This is to fix distortion
@@ -561,8 +554,6 @@ class W3DGraphics {
                         triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
                         triProjected.p[1] = triProjected.p[1] * (0.5f * this->window_width);
                         triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
-
-                        triProjected.color = tri.color;
 
                         // Add to vertex_list 
                         projectedTriangles.push_back(triProjected);

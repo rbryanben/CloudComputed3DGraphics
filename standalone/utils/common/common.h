@@ -79,6 +79,14 @@ struct Triangle
 
         return false;
     }
+
+    void copyTextureFrom(Triangle &triangle){
+        this->t[0] = triangle.t[0];
+        this->t[1] = triangle.t[1];
+        this->t[2] = triangle.t[2];
+        // Copy color as well 
+        this->color = triangle.color;
+    }
 };
 
 
