@@ -47,14 +47,15 @@ TEST(test_matrices,matrix_matrix_multiplication){
 
 // Test Clipping of triangle 
 TEST(clipping,triangle_clipping_against_plane_Z){
+    float t = 0 ;
     
     Vect3d zPoint = {0,0,0.1f,1};
     Vect3d intersection_a, intersection_b;
 
     // One point out
     Triangle test_1 = {3,0,-8,1, 3,2,1,1, 4,7,1,1 };
-    intersection_a = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_1.p[0],test_1.p[1]);
-    intersection_b = vectorIntersectPlane(zPoint,{0,0,1,1},test_1.p[0],test_1.p[2]);
+    intersection_a = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_1.p[0],test_1.p[1],t);
+    intersection_b = vectorIntersectPlane(zPoint,{0,0,1,1},test_1.p[0],test_1.p[2],t);
     vector<Triangle> clippedTriangles = clipTriangleAgainstPlane(zPoint,{0,0,1,1},test_1); 
 
     ASSERT_TRUE(clippedTriangles[0].p[0] == test_1.p[1]);
@@ -67,8 +68,8 @@ TEST(clipping,triangle_clipping_against_plane_Z){
 
     // two points out
     Triangle test_2 = {3,0,-8,1, 3,2,1,1, 4,7,-1,1 };
-    intersection_a = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_2.p[1],test_2.p[0]);
-    intersection_b = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_2.p[1],test_2.p[2]);
+    intersection_a = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_2.p[1],test_2.p[0],t);
+    intersection_b = vectorIntersectPlane(zPoint,{0,0,1.f,1},test_2.p[1],test_2.p[2],t);
     clippedTriangles = clipTriangleAgainstPlane(zPoint,{0,0,1,1},test_2); 
 
     ASSERT_TRUE(clippedTriangles[0].p[0] == test_1.p[1]);
@@ -91,6 +92,7 @@ TEST(clipping,triangle_clipping_against_plane_Z){
 
 // Test Clipping against the right of the screen
 TEST(clipping,triangle_clipping_against_right_screen){
+    float t = 0;
     Vect3d xPoint = {3,0,0,1};
     Vect3d intersection_a, intersection_b;
     vector<Triangle> clipped;
@@ -108,8 +110,8 @@ TEST(clipping,triangle_clipping_against_right_screen){
     // Two points out - 1 new triangle 
     Triangle test_3 = {1,0,2,1,  4,1,3,1,  5,1,1,1};
     clipped = clipTriangleAgainstPlane(xPoint,{-1,0,0,1},test_3);
-    intersection_a = vectorIntersectPlane(xPoint,{-1,0,0,1},test_3.p[0],test_3.p[2]);
-    intersection_b = vectorIntersectPlane(xPoint,{-1,0,0,1},test_3.p[0],test_3.p[1]);
+    intersection_a = vectorIntersectPlane(xPoint,{-1,0,0,1},test_3.p[0],test_3.p[2],t);
+    intersection_b = vectorIntersectPlane(xPoint,{-1,0,0,1},test_3.p[0],test_3.p[1],t);
     ASSERT_TRUE(clipped[0].p[0] == test_3.p[0]);
     ASSERT_TRUE(clipped[0].p[1] == intersection_b);
     ASSERT_TRUE(clipped[0].p[2] == intersection_a);
@@ -117,8 +119,8 @@ TEST(clipping,triangle_clipping_against_right_screen){
     // One point out - 2 new triangles 
     Triangle test_4 = {1,0,2,1,  2,1,3,1,  5,1,1,1};
     clipped = clipTriangleAgainstPlane(xPoint,{-1,0,0,1},test_4);
-    intersection_a = vectorIntersectPlane(xPoint,{-1,0,0,1},test_4.p[0],test_4.p[2]);
-    intersection_b = vectorIntersectPlane(xPoint,{-1,0,0,1},test_4.p[1],test_4.p[2]);
+    intersection_a = vectorIntersectPlane(xPoint,{-1,0,0,1},test_4.p[0],test_4.p[2],t);
+    intersection_b = vectorIntersectPlane(xPoint,{-1,0,0,1},test_4.p[1],test_4.p[2],t);
 
     ASSERT_TRUE(clipped[0].p[0] == test_4.p[0]);
     ASSERT_TRUE(clipped[0].p[1] == test_4.p[1]);
@@ -136,7 +138,8 @@ TEST(lines,line_intersect_plane){
     Vect3d point2 = {10,3,2};
     Vect3d ans = {8.f,3.f,1.75f,1.f};
     //intersection with plane x = 8 
-    Vect3d intersection = vectorIntersectPlane({8,0,0,1},{-1,0,0,1},point1,point2);
+    float t = 0 ;
+    Vect3d intersection = vectorIntersectPlane({8,0,0,1},{-1,0,0,1},point1,point2,t);
 
     ASSERT_TRUE(intersection == ans);
 };

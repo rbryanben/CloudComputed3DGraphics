@@ -19,6 +19,9 @@ class Image{
     public:
         Image(){};
 
+        Image(long null){
+        }
+
         Image(int width, int height){
             this->width = width;
             this->height = height;

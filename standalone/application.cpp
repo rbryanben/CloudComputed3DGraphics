@@ -165,7 +165,7 @@ class W3DGraphics {
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
                     
-                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * (this->texture.getHeight() - 1),(tex_u/tex_w) * (this->texture.getWidth() - 1));
+                        RGB pixel = tri.texture->getPixelAt((tex_v/tex_w) * (tri.texture->getHeight() - 1),(tex_u/tex_w) * (tri.texture->getWidth() - 1));
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         
                         if ( i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
@@ -236,7 +236,7 @@ class W3DGraphics {
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
 
-                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * (this->texture.getHeight() - 1),(tex_u/tex_w) * (this->texture.getWidth() - 1));
+                        RGB pixel = tri.texture->getPixelAt((tex_v/tex_w) * (tri.texture->getHeight() - 1),(tex_u/tex_w) * (tri.texture->getWidth() - 1));
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         
                         if (i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
@@ -307,7 +307,7 @@ class W3DGraphics {
         W3Camera sceneCamera; 
 
         //illumination - basic 
-        Vect3d lightSource = {0,0,-1};
+        Vect3d lightSource = {0,0,-5};
         
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
@@ -394,9 +394,8 @@ class W3DGraphics {
                 1000.f,
                 0.1f);
 
-            // Load the texture 
-            this->texture = readPPM("./assets/objs/crate/crate.ppm");
-            this->mesh.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
+            // Mesh
+            this->mesh.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
             
             // Configure camera
             this->sceneCamera = W3Camera({0,0,-5,1});
@@ -503,6 +502,7 @@ class W3DGraphics {
                 if (VectorDotProduct(vCameraRay,normal) < 0
                     ){
                     // Light source is placed in the scene space, before the camera
+                    NormalizeVector(lightSource);
                     float dt = f_max(VectorDotProduct(normal,lightSource),0);
                     Color color = {f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f)};
                 
@@ -514,6 +514,7 @@ class W3DGraphics {
                     MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
 
                     // Copy texture
+                    triTransformed.color = color;
                     triViewd.copyTextureFrom(triTransformed);
 
                     // Clip the triangles against the axis
@@ -561,48 +562,29 @@ class W3DGraphics {
                 }
             }
 
-            // Has Texture Data
-            if (this->texture.hasData()){
-                // Clear deptjh buffer 
-                this->clearDepthBuffer();
-                // Triangle clipped against screen edges 
-                //
-                vector<Triangle> clippedTrianglesList;
-                // Clip against the top of the screen
-                vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
-                //// Clip against bottom of the screen
-                vector<Triangle> bottomClipped =  clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
-                ////Clip against
-                vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
-                //// Clip against right of the screen
-                vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
-                // Draw
-                for (Triangle tri: rightClipped){
-                    this->texturedTriangle(tri);
-                }
+
             
+            // Triangle clipped against screen edges 
+            //
+            vector<Triangle> clippedTrianglesList;
+            // Clip against the top of the screen
+            vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
+            //// Clip against bottom of the screen
+            vector<Triangle> bottomClipped =  clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
+            ////Clip against
+            vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
+            //// Clip against right of the screen
+            vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
+            
+            // Clear depth buffer 
+            this->clearDepthBuffer();
+
+            // If there is texture
+            for (Triangle tri: rightClipped){
+                this->texturedTriangle(tri);
             }
-            // No texture
-            else {
-                projectedTriangles = sortTriangleList(projectedTriangles);
-
-                // Triangle clipped against screen edges 
-                //
-                vector<Triangle> clippedTrianglesList;
-
-                // Clip against the top of the screen
-                vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
-                // Clip against bottom of the screen
-                vector<Triangle> bottomClipped = clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
-                //Clip against
-                vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
-                // Clip against right of the screen
-                vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
-
-                for (Triangle tri : rightClipped){
-                    this->drawTriangle(tri);
-                }
-            }
+            
+            
         }
 
 };

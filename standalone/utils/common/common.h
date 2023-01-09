@@ -69,7 +69,8 @@ struct Triangle
     Vect3d p[3];
     Vect2d t[3];
     Color color ;
-
+    Image* texture;
+    
     bool operator ==  (Triangle &other){
         if (other.p[0] == p[0]
             && other.p[1] == p[1]
@@ -84,6 +85,8 @@ struct Triangle
         this->t[0] = triangle.t[0];
         this->t[1] = triangle.t[1];
         this->t[2] = triangle.t[2];
+        // Copy texture reference
+        this->texture = triangle.texture;
         // Copy color as well 
         this->color = triangle.color;
     }
@@ -93,9 +96,13 @@ struct Triangle
 struct Mesh
 {
     vector<Triangle> triangles;
+    Image texture;
 
-	bool LoadFromObjectFile(string sFilename, bool bHasTexture = false)
+	bool LoadFromObjectFile(string sFilename, Image texture=NULL)
 	{
+        //set texture
+        this->texture = texture;
+
 		ifstream f(sFilename);
 		if (!f.is_open())
 			return false;
@@ -133,7 +140,7 @@ struct Mesh
 				}
 			}
 
-			if (!bHasTexture)
+			if (!this->texture.hasData())
 			{
 				if (line[0] == 'f')
 				{
@@ -163,9 +170,12 @@ struct Mesh
 
 					tokens[nTokenCount].pop_back();
 
-
-					triangles.push_back({ verts[stoi(tokens[0]) - 1], verts[stoi(tokens[2]) - 1], verts[stoi(tokens[4]) - 1],
-						texs[stoi(tokens[1]) - 1], texs[stoi(tokens[3]) - 1], texs[stoi(tokens[5]) - 1] });
+                    // Triangle to add to the list
+                    Triangle tri = { verts[stoi(tokens[0]) - 1], verts[stoi(tokens[2]) - 1], verts[stoi(tokens[4]) - 1],
+						texs[stoi(tokens[1]) - 1], texs[stoi(tokens[3]) - 1], texs[stoi(tokens[5]) - 1] };
+                    // Set texture reference
+                    tri.texture = &this->texture;
+					triangles.push_back(tri);
 
 				}
 
@@ -462,6 +472,10 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
     vector<Triangle> res; 
     Triangle out_tri1,out_tri2;
 
+    // Totongogara ta coper ma texture
+    out_tri1.texture = in_tri.texture;
+    out_tri2.texture = in_tri.texture;
+
     //make sure normal is indeed normal
     plane_n = VectorNormalize(plane_n);
     
@@ -540,6 +554,7 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
         out_tri1.t[2].u = inside_texture[0].u + (t2 * (outside_texture[1].u - inside_texture[0].u));
         out_tri1.t[2].v = inside_texture[0].v + (t2 * (outside_texture[1].v - inside_texture[0].v));
         out_tri1.t[2].w = inside_texture[0].w + (t2 * (outside_texture[1].w - inside_texture[0].w));
+        
         res.push_back(out_tri1);
         return res;
     }
