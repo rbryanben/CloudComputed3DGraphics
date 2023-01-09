@@ -32,36 +32,15 @@ class W3DGraphics {
     private:    
         // Window Properties & Window 
         int window_width=0 , window_height=0; 
+        
         // Matrice
         Matrix4x4 projectionMatrix;
+
         // Vars 
-        float rotationAngle = 22/7  * 2;
-        // Time
-        std::chrono::steady_clock::time_point timeBegin;
+        float rotationAngle = 22.f/7.f;
 
         // Depth buffer 
         float* depthBuffer;
-
-        // Setup Window
-        void setupWindow(int &argc, char **&argv){
-            // Setup Window 
-            glutInit(&argc, argv);
-            glutInitDisplayMode(GLUT_SINGLE);
-            glutInitWindowSize(this->window_width, this->window_height);
-            glutInitWindowPosition(100, 100);
-            glutCreateWindow("OpenGL - Creating a triangle");
-            glutDisplayFunc(_EntryOnWindowReady);
-            glutKeyboardFunc(_EntryKeyboard);
-            glutIdleFunc(_EntryOnWindowUpdate);
-            glutMainLoop();    
-
-        }
-
-        // Given two vectors an the y, returns the x 
-        float lineEquationFindX(Vect3d line1, Vect3d line2,float y){
-            float m = (line1.y - line2.y) / (line1.x - line2.x);
-            return y/m;
-        }
 
         // Textured Triangle
         void texturedTriangle(Triangle tri,bool colorRed=false){
@@ -185,11 +164,8 @@ class W3DGraphics {
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-                        // Not sure is required
-                        tex_u = f_min(tex_u,1.0f);
-                        tex_v = f_min(tex_v,1.0f);
-
-                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * this->texture.getHeight(),(tex_u/tex_w) * this->texture.getWidth());
+                    
+                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * (this->texture.getHeight() - 1),(tex_u/tex_w) * (this->texture.getWidth() - 1));
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         
                         if ( i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
@@ -259,10 +235,8 @@ class W3DGraphics {
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-                        tex_u = f_min(tex_u,1.0f);
-                        tex_v = f_min(tex_v,1.0f);
 
-                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * this->texture.getHeight(),(tex_u/tex_w) * this->texture.getWidth());
+                        RGB pixel = texture.getPixelAt((tex_v/tex_w) * (this->texture.getHeight() - 1),(tex_u/tex_w) * (this->texture.getWidth() - 1));
                         glColor3f(pixel.r,pixel.g,pixel.b);
                         
                         if (i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
@@ -287,7 +261,7 @@ class W3DGraphics {
             glBegin(GL_POINTS);
                 //Draw Texture 
                 for (int r=0; r != this->texture.getHeight(); ++r){
-                    for (int c=0; c != this->texture.getWidth(); ++c){
+                    for (int c=0; c != this->texture.getWidth(); ++c){\                        
                         // Get pixel color 
                         RGB pixelColor = this->texture.getPixelAt(r,c);
                         glColor3f(pixelColor.r,pixelColor.g,pixelColor.b);
@@ -299,7 +273,6 @@ class W3DGraphics {
 
         //Draw Triangles
         void drawTriangle(Triangle &tri){
-            
             //glBegin
             glBegin(GL_TRIANGLES);
                 glColor3f(tri.color.red,tri.color.green,tri.color.blue);
@@ -308,7 +281,10 @@ class W3DGraphics {
                 glVertex2f(tri.p[2].x,tri.p[2].y);
                 glVertex2f(tri.p[0].x,tri.p[0].y);
             glEnd();
-            return;
+        }
+
+        // Draw Lines 
+        void drawTriangleLines(Triangle &tri){
             glBegin(GL_LINES);
                 glColor3f(1.f,0,0);
                 glVertex2f(tri.p[0].x,tri.p[0].y);
@@ -326,21 +302,18 @@ class W3DGraphics {
         Image texture; 
         // Objects List
         Mesh mesh;
-        Mesh lightBox;
-    
-        // Camera 
-        Vect3d vCamera;
 
         // W3Camera
         W3Camera sceneCamera; 
 
-        //illumination
-        Vect3d lightSource = {0,0,0};
+        //illumination - basic 
+        Vect3d lightSource = {0,0,-1};
         
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
+            // Set the instance, which is used by opengl to refer to methods 
             instance = this;
-            //Set window width and heightObj
+            //Set window width and height
             this->window_height = windowHeight;
             window_width = windowHeight; 
             // Depth buffer 
@@ -350,14 +323,27 @@ class W3DGraphics {
         // Initializer 
         void init(int &argc, char **&argv){
             // Setup Window 
-            this->setupWindow(argc,argv);
+            glutInit(&argc, argv);
+            glutInitDisplayMode(GLUT_SINGLE);
+            glutInitWindowSize(this->window_width, this->window_height);
+            glutInitWindowPosition(100, 100);
+            glutCreateWindow("W3Graphics Engine - Standalone");
+            glutDisplayFunc(_EntryOnWindowReady);
+            glutKeyboardFunc(_EntryKeyboard);
+            glutSpecialFunc(_EntrySpecialKeys);
+            glutIdleFunc(_EntryOnWindowUpdate);
+            // Set Black Background of window
+            glClearColor(0,0, 0, 1); 
+            glClear(GL_COLOR_BUFFER_BIT);
+            // Set Window Bounds
+            glOrtho(0.0,this->window_width,this->window_height,0.0,0,1000);
+            glutMainLoop();    
         }
    
         //Entry Window Ready 
         static void _EntryOnWindowReady(){
             //Call instance window ready
             instance->onWindowReady();
-
         }
 
         // Entry Window Update
@@ -375,6 +361,30 @@ class W3DGraphics {
             instance->onUserInput(key,x,y);
         }
 
+        static void _EntrySpecialKeys( int key, int x, int y )
+        {
+            switch( key )
+            {
+                case GLUT_KEY_UP:
+                    
+                    break;
+        
+                case GLUT_KEY_DOWN:
+                    // handle down arrow
+                    break;
+        
+                case GLUT_KEY_LEFT:
+                    instance->sceneCamera.moveLeft(0.2f);
+                    // handle left arrow
+                    break;
+        
+                case GLUT_KEY_RIGHT:
+                    // handle right arrow
+                    instance->sceneCamera.moveRight(0.2f);
+                    break;
+            }
+        }
+
         // onWindowReady
         void onWindowReady(){
             //Setup projection matrix
@@ -385,17 +395,9 @@ class W3DGraphics {
                 0.1f);
 
             // Load the texture 
-            this->texture = readPPM("./assets/objs/engine/texture.ppm");
-            this->lightBox.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
-            this->mesh.LoadFromObjectFile("./assets/objs/engine/Neck_Mech_Walker_by_3DHaupt-(Wavefront OBJ).obj",true);
+            this->texture = readPPM("./assets/objs/crate/crate.ppm");
+            this->mesh.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",true);
             
-    
-            // Set Black Background of window
-            glClearColor(0,0, 0, 1); 
-            glClear(GL_COLOR_BUFFER_BIT);
-            // Set Window Bounds
-            glOrtho(0.0,this->window_width,this->window_height,0.0,0,1000);
-
             // Configure camera
             this->sceneCamera = W3Camera({0,0,-5,1});
         }
@@ -435,6 +437,8 @@ class W3DGraphics {
                 case 'p':
                     this->lightSource.z += 5 ;
                     break;
+                case 't':
+                    break;
                 case ';':
                     this->lightSource.z -= 5 ;
                     break;
@@ -443,26 +447,32 @@ class W3DGraphics {
             }
         }
 
+        // Clears the depth buffer 
+        void clearDepthBuffer(){
+            // Clear depth buffer 
+            for (u_int i = 0; i != this->window_height * window_width; i++){
+                this->depthBuffer[i] = 0 ; 
+            }
+        }
+        
         // Called every time the window updates     
         void onWindowUpdate(){
-            this->rotationAngle += 0.02;
             // Render object
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
             
             //  Geometry (Rotation and Translation)
-            //Matrix4x4 matRotZ = getMatrixRotationZ(rotationAngle);
-            //Matrix4x4 matRotX = getMatrixRotationY(rotationAngle);
+            Matrix4x4 matRotZ = getMatrixRotationZ(rotationAngle);
 
             // Camera Matrix - this is here so that we do not retrieve it on every render triangle
             Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse(); 
-            
+        
             //Offset to the center of the screen 
             Vect3d vOffsetView = {1,1,0};
 
-            // Translate into Z by 5, otherwise we will not see the object because we are at (0,0,0)
-            Matrix4x4 matWorld = Matrix_MakeTranslation(0.0f,0.0f,0.0f);
-
+            // Geometric Transformations 
+            Matrix4x4 matWorld = matRotZ * Matrix_MakeTranslation(0.0f,0.0f,0.0f);
+            
             //draw triangles 
             for (Triangle tri : this->mesh.triangles){
                 Triangle triProjected,triTransformed;
@@ -475,7 +485,7 @@ class W3DGraphics {
                 triTransformed.p[1] = MatrixMultiplyVector(matWorld,tri.p[1]);
                 triTransformed.p[2] = MatrixMultiplyVector(matWorld,tri.p[2]); 
 
-                //Copy texture as well 
+                //Copy texture
                 triTransformed.t[0] = tri.t[0];
                 triTransformed.t[1] = tri.t[1];
                 triTransformed.t[2] = tri.t[2];
@@ -507,9 +517,12 @@ class W3DGraphics {
                     MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
 
                     triViewd.color = color;
-
+                    
+                    triViewd.t[0] = triTransformed.t[0];
+                    triViewd.t[1] = triTransformed.t[1];
+                    triViewd.t[2] = triTransformed.t[2];
                     // Clip the triangles against the axis
-                    vector<Triangle> clippedZ = clipTriangleAgainstPlane({0,0,0.1f,1},{0,0,1,1},triViewd); 
+                    vector<Triangle> clippedZ = clipTriangleAgainstPlane({0,0,1.1f,1},{0,0,1,1},triViewd); 
 
                     for (auto tri : clippedZ){  
                         //
@@ -520,9 +533,9 @@ class W3DGraphics {
                         float w2 = MultiplyMatrixVector(tri.p[2],triProjected.p[2],this->projectionMatrix);
 
                         // Copy the texture information to triProjected from triTransformed
-                        triProjected.t[0] = triTransformed.t[0];
-                        triProjected.t[1] = triTransformed.t[1];
-                        triProjected.t[2] = triTransformed.t[2];
+                        triProjected.t[0] = tri.t[0];
+                        triProjected.t[1] = tri.t[1];
+                        triProjected.t[2] = tri.t[2];
 
                         // Also normalize u and v , as z gets larger u and v get smaller 
                         // This is to fix distortion
@@ -543,7 +556,6 @@ class W3DGraphics {
                         triProjected.p[1] = triProjected.p[1] + vOffsetView;
                         triProjected.p[2] = triProjected.p[2] + vOffsetView;
 
-
                         // Scale to the window width  
                         //  this centeres the triangle
                         triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
@@ -558,27 +570,22 @@ class W3DGraphics {
                 }
             }
 
-            // Draw the triangle on the server side if showGraphics is true 
+            // Has Texture Data
             if (this->texture.hasData()){
-                // Clear depth buffer 
-                for (u_int i = 0; i != this->window_height * window_width; i++){
-                    this->depthBuffer[i] = 0 ; 
-                }
-
+                // Clear deptjh buffer 
+                this->clearDepthBuffer();
                 // Triangle clipped against screen edges 
                 //
                 vector<Triangle> clippedTrianglesList;
-
-
                 // Clip against the top of the screen
                 vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
-                // Clip against bottom of the screen
-                vector<Triangle> bottomClipped = clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
-                //Clip against
+                //// Clip against bottom of the screen
+                vector<Triangle> bottomClipped =  clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
+                ////Clip against
                 vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
-                // Clip against right of the screen
+                //// Clip against right of the screen
                 vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
-
+                // Draw
                 for (Triangle tri: rightClipped){
                     this->texturedTriangle(tri);
                 }
@@ -591,7 +598,6 @@ class W3DGraphics {
                 // Triangle clipped against screen edges 
                 //
                 vector<Triangle> clippedTrianglesList;
-
 
                 // Clip against the top of the screen
                 vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
@@ -606,84 +612,7 @@ class W3DGraphics {
                     this->drawTriangle(tri);
                 }
             }
-
-            renderObjectToPosition(this->lightBox,{799,0,0},{1,1,0});
         }
-
-
-        void renderObjectToPosition(Mesh &object,Vect3d position,Color color){
-            // Final projected colors and triangles 
-            vector<Triangle> projectedTriangles;
-            
-            // Translation Matrix
-            Matrix4x4 translationMatrix =  Matrix_MakeTranslation(position.x,position.y,position.z);
-            Matrix4x4 scaleMatrix = getScalingMatrix(0.02f);
-            Matrix4x4 matWorld =translationMatrix * scaleMatrix;
-
-            //draw triangles 
-            for (Triangle tri : object.triangles){
-                Triangle triProjected,triTransformed;
-                
-                // Translate points 
-                triTransformed.p[0] = MatrixMultiplyVector(matWorld,tri.p[0]);
-                triTransformed.p[1] = MatrixMultiplyVector(matWorld,tri.p[1]);
-                triTransformed.p[2] = MatrixMultiplyVector(matWorld,tri.p[2]); 
-
-
-                // Determine the normal so that we do not draw triangles that are not facing us
-                Vect3d normal = getTriangleNormal(triTransformed);
-
-                // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
-                Vect3d vCameraRay = triTransformed.p[0] - this->sceneCamera.getTranslation();
-                
-                //Offset to the center of the screen 
-                Vect3d vOffsetView = {1,1,0};
-
-                if (VectorDotProduct(vCameraRay,normal) < 0
-                    ){
-
-                    float dt = f_max(VectorDotProduct(normal,lightSource),0);
-                    //Color color = {f_max(abs(dt*color.red),0.2f),f_max(abs(dt*color.green),0.2f),f_max(abs(dt*color.blue),0.2f)};
-
-                    // Camera viewd
-                    Triangle triViewd; 
-                    Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse();
-                    
-                    MultiplyMatrixVector(triTransformed.p[0],triViewd.p[0],matViewd);
-                    MultiplyMatrixVector(triTransformed.p[1],triViewd.p[1],matViewd);
-                    MultiplyMatrixVector(triTransformed.p[2],triViewd.p[2],matViewd);
-      
-                    //
-                    // Project the matrix (Some Z normalization takes place here)
-                    float w0 = MultiplyMatrixVector(triViewd.p[0],triProjected.p[0],this->projectionMatrix);
-                    float w1 = MultiplyMatrixVector(triViewd.p[1],triProjected.p[1],this->projectionMatrix);
-                    float w2 = MultiplyMatrixVector(triViewd.p[2],triProjected.p[2],this->projectionMatrix);
-
-                
-                    // offset
-                    triProjected.p[0] = triProjected.p[0] + vOffsetView;
-                    triProjected.p[1] = triProjected.p[1] + vOffsetView;
-                    triProjected.p[2] = triProjected.p[2] + vOffsetView;
-                    
-                    // Scale to the window width 
-                    triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
-                    triProjected.p[1] = triProjected.p[1] * (0.5f * this->window_width);
-                    triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
-                    
-
-                    triProjected.color = color;
-                    projectedTriangles.push_back(triProjected);
-                    
-                }
-            }
-
-            projectedTriangles = sortTriangleList(projectedTriangles);
-            for (Triangle tri : projectedTriangles){
-                this->drawTriangle(tri);
-            }
-                
-        };
-
 
 };
 

@@ -45,8 +45,6 @@ class Image{
         }
 
         RGB getPixelAt(int r, int c){
-            r = std::max(r,0);
-            c = std::max(c,0);
             return this->matrix[(r * width)+c];
         }
 

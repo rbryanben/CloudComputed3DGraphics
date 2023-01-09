@@ -23,6 +23,11 @@ class W3Camera {
             this->setTranslation(position);
         }
 
+
+        Vect3d getXDir(){
+            return {this->cameraMatrix.m[0][0],this->cameraMatrix.m[0][1],this->cameraMatrix.m[0][2],1};
+        };
+
         // Translate 
         void setTranslation(Vect3d pos);
         // Get translation
@@ -40,6 +45,9 @@ class W3Camera {
         void rotateY(float angle);
         // Move up
         void moveUp(float distance);
+        // Move left and right
+        void moveLeft(float distance);
+        void moveRight(float distance);
 
 };
 
@@ -106,4 +114,16 @@ void W3Camera::moveUp(float distance){
     Vect3d camTrans = this->getTranslation();
     camTrans.y += distance;
     this->setTranslation(camTrans);
+}
+
+
+// Move left and Right
+void W3Camera::moveLeft(float distance){
+    Vect3d newPos = this->getTranslation() + (this->getXDir() * distance);
+    this->setTranslation(newPos);
+}
+
+void W3Camera::moveRight(float distance){
+    Vect3d newPos = this->getTranslation() + (this->getXDir() * -distance);
+    this->setTranslation(newPos);
 }
