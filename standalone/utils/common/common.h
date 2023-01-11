@@ -143,6 +143,7 @@ struct Mesh
     // Mesh Geometric Matrix
     Matrix4x4 geometryMatrix;
 
+    // loads from file 
 	bool LoadFromObjectFile(string sFilename, Image texture=NULL)
 	{
         //set texture
@@ -229,6 +230,14 @@ struct Mesh
 		return true;
 	}
 
+    // Constructors
+    Mesh(Vect3d translation_vector){
+        this->translate(translation_vector);
+    }
+
+    Mesh (Matrix4x4 geometryMatrix){
+        this->geometryMatrix = geometryMatrix;
+    }
     // Sets the translation for matrix
     void translate(Vect3d translation_vector){
         geometryMatrix.m[3][0] = translation_vector.x;
