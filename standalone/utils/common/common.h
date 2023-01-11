@@ -7,8 +7,12 @@
 #include <stdlib.h>
 #include <strstream>
 #include "uuid.h"
+#include "math.h"
 
 using namespace std;
+
+// Precalculated
+float pi = 22.f / 7.f ;
 
 float round_(float var)
 {
@@ -136,6 +140,11 @@ struct Matrix4x4{
         return res ;
     } 
 };
+
+Matrix4x4 getScalingMatrix(float f);
+Matrix4x4 getMatrixRotationX(float rotationAngle);
+Matrix4x4 getMatrixRotationY(float rotationAngle);
+Matrix4x4 getMatrixRotationZ(float rotationAngle);
 
 struct Mesh
 {
@@ -270,6 +279,31 @@ struct Mesh
         geometryMatrix.m[3][0] = translation_vector.x;
         geometryMatrix.m[3][1] = -translation_vector.y;
         geometryMatrix.m[3][2] = translation_vector.z;
+    }
+
+    // Rotate z 
+    void rotateZ(float rotationAngle){
+        geometryMatrix = geometryMatrix * getMatrixRotationZ(rotationAngle * (pi/180));
+    }
+
+    void rotateY(float rotationAngle){
+        geometryMatrix = geometryMatrix * getMatrixRotationY(rotationAngle * (pi/180));
+    }
+
+    void rotateX(float rotationAngle){
+        geometryMatrix = geometryMatrix * getMatrixRotationX(rotationAngle * (pi/180));
+    }
+
+    // Scale 
+    void scale(float scale_factor){
+        geometryMatrix.m[0][0] *= scale_factor;
+        geometryMatrix.m[1][1] *= scale_factor;
+        geometryMatrix.m[2][2] *= scale_factor;
+    }
+
+    // Rotate x 
+    void rotate(float degrees){
+
     }
 };
 

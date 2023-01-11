@@ -749,8 +749,11 @@ int main(int argc, char **argv)
     graphicsEngine.addToScene(crate);
     graphicsEngine.addToScene(drum);
 
-    // Translatet 
-    graphicsEngine.meshes["drum"].translate({0,10,0,1});
+    // Translate
+    graphicsEngine.meshes["drum"].rotateZ(180);
+    graphicsEngine.meshes["drum"].translate({0,0,0,1});
+    graphicsEngine.meshes["drum"].scale(1.5f);
+    
     
     // Initialize engine
     graphicsEngine.init(argc,argv);
