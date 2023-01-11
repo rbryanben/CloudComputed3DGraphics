@@ -64,12 +64,14 @@ struct Color
     float red = 0.0f,green=0.0f,blue = 0.0f;
 };
 
+struct Mesh;
 struct Triangle
 {
     Vect3d p[3];
     Vect2d t[3];
     Color color ;
     Image* texture;
+    Mesh* parent;
     
     bool operator ==  (Triangle &other){
         if (other.p[0] == p[0]
@@ -221,6 +223,7 @@ struct Mesh
 						texs[stoi(tokens[1]) - 1], texs[stoi(tokens[3]) - 1], texs[stoi(tokens[5]) - 1] };
                     // Set texture reference
                     tri.texture = &this->texture;
+                    tri.parent = this;
 					triangles.push_back(tri);
 
 				}
@@ -231,6 +234,7 @@ struct Mesh
 	}
 
     // Constructors
+    Mesh(){}
     Mesh(Vect3d translation_vector){
         this->translate(translation_vector);
     }
@@ -238,6 +242,7 @@ struct Mesh
     Mesh (Matrix4x4 geometryMatrix){
         this->geometryMatrix = geometryMatrix;
     }
+
     // Sets the translation for matrix
     void translate(Vect3d translation_vector){
         geometryMatrix.m[3][0] = translation_vector.x;
