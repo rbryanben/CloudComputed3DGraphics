@@ -8,6 +8,7 @@
 #include <err.h>
 #include <chrono>
 #include <strstream>
+#include <map>
 
 
 // Libs
@@ -301,7 +302,7 @@ class W3DGraphics {
         // Texture Holder 
         Image texture; 
         // Objects List
-        Mesh mesh;
+        std::map<string,Mesh> meshes;
 
         // W3Camera
         W3Camera sceneCamera; 
@@ -339,7 +340,13 @@ class W3DGraphics {
             glOrtho(0.0,this->window_width,this->window_height,0.0,0,1000);
             glutMainLoop();    
         }
-   
+
+        // Add Mesh to scene and returns a reference to the mesh
+        Mesh* addToScene(Mesh &mesh){
+            this->meshes[mesh.name] = mesh;
+            return &meshes[mesh.name];
+        }
+        
         //Entry Window Ready 
         static void _EntryOnWindowReady(){
             //Call instance window ready
@@ -393,10 +400,6 @@ class W3DGraphics {
                 90.0f,
                 1000.f,
                 0.1f);
-
-            // Mesh
-            this->mesh.LoadFromObjectFile("./assets/objs/pathwalk/pathwalk.obj",readPPM("./assets/objs/pathwalk/texture.ppm"));
-            //this->mesh.LoadFromObjectFile("./assets/objs/plane/untitled.obj",readPPM("./assets/ppm/wood.ppm"));
             
             // Configure camera
             this->sceneCamera = W3Camera({0,0,-5,1});
@@ -455,7 +458,7 @@ class W3DGraphics {
             }
         }
         
-        // Called every time the window updates     
+        /* Called every time the window updates     
         void onWindowUpdate(){
             // Render object
             // Final projected colors and triangles 
@@ -588,7 +591,147 @@ class W3DGraphics {
             
             
         }
+        */
 
+        //Called every time the window updates     
+        void onWindowUpdate(){
+            // Final projected colors and triangles 
+            vector<Triangle> projectedTriangles;
+        
+            // Camera Matrix - this is here so that we do not retrieve it on every render triangle
+            Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse(); 
+        
+            //Offset to the center of the screen 
+            Vect3d vOffsetView = {1,1,0};
+
+            // Combined objects list 
+            vector<Triangle> combinedMeshesTriangles;
+
+            // Combine meshes 
+            for (auto i= this->meshes.begin(); i != this->meshes.end(); ++i){
+                Mesh mesh = i->second;
+                for (Triangle tri: mesh.triangles){
+                    Triangle triTransformed;;
+                    
+                    // Apply geometric transformation to each triangle
+                    triTransformed.p[0] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[0]);
+                    triTransformed.p[1] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[1]);
+                    triTransformed.p[2] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[2]);
+                    
+                    //Copy texture
+                    triTransformed.copyTextureFrom(tri);
+                    // Add triangle to the combined mesh triangles 
+                    combinedMeshesTriangles.push_back(triTransformed); 
+                    
+                    
+                }
+            }
+
+            //draw triangles - scene is combined from this point 
+            for (Triangle tri : combinedMeshesTriangles){
+                Triangle triProjected;
+                Matrix4x4 matRotZ, matRotX;
+
+                // Determine the normal so that we do not draw triangles that are not facing us
+                Vect3d normal,line1,line2 ;
+                line1 = tri.p[1] - tri.p[0];
+                line2 = tri.p[2] - tri.p[0]; 
+                normal = VectorCrossProduct(line1,line2);
+                NormalizeVector(normal);
+
+
+                // Camera Ray Which is the difference between triTransformed.p[0] and vCamera
+                //  is the vector from the camera to the triangle. We wish to calculate the angle inbetween to see if its visible 
+                Vect3d vCameraRay = tri.p[0] - this->sceneCamera.getTranslation();
+
+                if (VectorDotProduct(vCameraRay,normal) < 0
+                    ){
+                    // Light source is placed in the scene space, before the camera
+                    NormalizeVector(lightSource);
+                    float dt = f_max(VectorDotProduct(normal,lightSource),0);
+                    Color color = {f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f)};
+                
+                    //
+                    // Camera - From here the entire view is inversed to the camera's view 
+                    Triangle triViewd; 
+                    MultiplyMatrixVector(tri.p[0],triViewd.p[0],matViewd);
+                    MultiplyMatrixVector(tri.p[1],triViewd.p[1],matViewd);
+                    MultiplyMatrixVector(tri.p[2],triViewd.p[2],matViewd);
+
+                    // Copy texture
+                    tri.color = color;
+                    triViewd.copyTextureFrom(tri);
+
+                    // Clip the triangles against the axis
+                    vector<Triangle> clippedZ = clipTriangleAgainstPlane({0,0,0.1f,1},{0,0,1,1},triViewd); 
+
+                    for (auto tri : clippedZ){  
+                        //
+                        // Project the polygons(Some normalization takes place here)
+                        //      At this point we project the 3D co-ordinates on to a 3D scene
+                        float w0 = MultiplyMatrixVector(tri.p[0],triProjected.p[0],this->projectionMatrix);
+                        float w1 = MultiplyMatrixVector(tri.p[1],triProjected.p[1],this->projectionMatrix);
+                        float w2 = MultiplyMatrixVector(tri.p[2],triProjected.p[2],this->projectionMatrix);
+
+                        // Copy the texture information to triProjected from triTransformed
+                        triProjected.copyTextureFrom(tri);
+
+                        // Also normalize u and v , as z gets larger u and v get smaller 
+                        // This is to fix distortion
+                        triProjected.t[0].u = triProjected.t[0].u / w0;
+                        triProjected.t[1].u = triProjected.t[1].u / w1;
+                        triProjected.t[2].u = triProjected.t[2].u / w2;
+
+                        triProjected.t[0].v = triProjected.t[0].v / w0;
+                        triProjected.t[1].v = triProjected.t[1].v / w1;
+                        triProjected.t[2].v = triProjected.t[2].v / w2;  
+
+                        triProjected.t[0].w = 1.f / w0;
+                        triProjected.t[1].w = 1.f / w1;
+                        triProjected.t[2].w = 1.f / w2;  
+
+                        // Offset to the center
+                        triProjected.p[0] = triProjected.p[0] + vOffsetView;
+                        triProjected.p[1] = triProjected.p[1] + vOffsetView;
+                        triProjected.p[2] = triProjected.p[2] + vOffsetView;
+
+                        // Scale to the window width  
+                        //  this centeres the triangle
+                        triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
+                        triProjected.p[1] = triProjected.p[1] * (0.5f * this->window_width);
+                        triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
+
+                        // Add to vertex_list 
+                        projectedTriangles.push_back(triProjected);
+                    }
+                }
+            }
+
+
+            
+            // Triangle clipped against screen edges 
+            //
+            vector<Triangle> clippedTrianglesList;
+            // Clip against the top of the screen
+            vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
+            //// Clip against bottom of the screen
+            vector<Triangle> bottomClipped =  clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
+            ////Clip against
+            vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
+            //// Clip against right of the screen
+            vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
+            
+            // Clear depth buffer 
+            this->clearDepthBuffer();
+
+            // If there is texture
+            for (Triangle tri: rightClipped){
+                this->texturedTriangle(tri);
+            }
+            
+            
+        }
+        
 };
 
 // Test With UI
@@ -596,6 +739,20 @@ int main(int argc, char **argv)
 {
     // Engine instance
     W3DGraphics graphicsEngine = W3DGraphics(800,800);
+
+    // Meshs 
+    Mesh crate = Mesh("crate");
+    Mesh drum = Mesh("drum");
+    crate.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
+    drum.LoadFromObjectFile("./assets/objs/drum/drum.obj",readPPM("./assets/objs/drum/texture.ppm"));
+    // Add to the scene 
+    graphicsEngine.addToScene(crate);
+    graphicsEngine.addToScene(drum);
+
+    // Translatet 
+    graphicsEngine.meshes["drum"].translate({0,10,0,1});
+    
+    // Initialize engine
     graphicsEngine.init(argc,argv);
 
     return 0;

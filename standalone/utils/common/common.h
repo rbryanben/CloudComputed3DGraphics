@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <strstream>
+#include "uuid.h"
+
 using namespace std;
 
 float round_(float var)
@@ -135,7 +137,6 @@ struct Matrix4x4{
     } 
 };
 
-
 struct Mesh
 {
     // List of a meshes triangles
@@ -144,6 +145,9 @@ struct Mesh
     Image texture;
     // Mesh Geometric Matrix
     Matrix4x4 geometryMatrix;
+
+    // Name 
+    string name;
 
     // loads from file 
 	bool LoadFromObjectFile(string sFilename, Image texture=NULL)
@@ -232,21 +236,39 @@ struct Mesh
 		}
 		return true;
 	}
+    //initialize 
+    void init(){
+        geometryMatrix.m[0][0] = 1.f;
+        geometryMatrix.m[1][1] = 1.f;
+        geometryMatrix.m[2][2] = 1.f;
+        geometryMatrix.m[3][3] = 1.f;
 
+    }
     // Constructors
-    Mesh(){}
-    Mesh(Vect3d translation_vector){
+    Mesh(){
+        name = uuid::generate_uuid_v4();
+        init();
+    }
+
+    Mesh(string name){
+        this->name = name;
+        init();
+    }
+
+    Mesh(string name,Vect3d translation_vector){
+        init();
         this->translate(translation_vector);
     }
 
-    Mesh (Matrix4x4 geometryMatrix){
+    Mesh (string name, Matrix4x4 geometryMatrix){
+        init();
         this->geometryMatrix = geometryMatrix;
     }
 
     // Sets the translation for matrix
     void translate(Vect3d translation_vector){
         geometryMatrix.m[3][0] = translation_vector.x;
-        geometryMatrix.m[3][1] = translation_vector.y;
+        geometryMatrix.m[3][1] = -translation_vector.y;
         geometryMatrix.m[3][2] = translation_vector.z;
     }
 };
