@@ -395,7 +395,8 @@ class W3DGraphics {
                 0.1f);
 
             // Mesh
-            this->mesh.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
+            this->mesh.LoadFromObjectFile("./assets/objs/pathwalk/pathwalk.obj",readPPM("./assets/objs/pathwalk/texture.ppm"));
+            //this->mesh.LoadFromObjectFile("./assets/objs/plane/untitled.obj",readPPM("./assets/ppm/wood.ppm"));
             
             // Configure camera
             this->sceneCamera = W3Camera({0,0,-5,1});
@@ -472,6 +473,7 @@ class W3DGraphics {
             // Geometric Transformations 
             Matrix4x4 matWorld = matRotZ * Matrix_MakeTranslation(0.0f,0.0f,0.0f);
             
+            // Iterate meshes  here
             //draw triangles 
             for (Triangle tri : this->mesh.triangles){
                 Triangle triProjected,triTransformed;

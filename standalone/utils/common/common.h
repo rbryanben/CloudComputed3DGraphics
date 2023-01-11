@@ -93,10 +93,55 @@ struct Triangle
 };
 
 
+struct Matrix4x4{
+    float m[4][4]= {0.0f};
+
+    double getHash(){
+        return 
+            m[0][0] + m[0][1] + m[0][2] + m[0][3] +
+            m[1][0] + m[1][1] + m[1][2] + m[1][3] + 
+            m[2][0] + m[2][1] + m[2][2] + m[2][3] + 
+            m[3][0] + m[3][1] + m[3][2] + m[3][3];  
+    }
+
+    Matrix4x4 operator * (Matrix4x4 b){
+        Matrix4x4 res; 
+
+        res.m[0][0] = b.m[3][0]*m[0][3]+m[0][0]*b.m[0][0]+m[0][1]*b.m[1][0]+m[0][2]*b.m[2][0]; 
+        res.m[0][1] = b.m[3][1]*m[0][3]+m[0][0]*b.m[0][1]+m[0][1]*b.m[1][1]+m[0][2]*b.m[2][1]; 
+        res.m[0][2] = b.m[2][2]*m[0][2]+b.m[3][2]*m[0][3]+m[0][0]*b.m[0][2]+m[0][1]*b.m[1][2]; 
+        res.m[0][3] = b.m[2][3]*m[0][2]+b.m[3][3]*m[0][3]+m[0][0]*b.m[0][3]+m[0][1]*b.m[1][3]; 
+
+
+        res.m[1][0] = b.m[3][0]*m[1][3]+m[1][1]*b.m[1][0]+m[1][2]*b.m[2][0]+b.m[0][0]*m[1][0];
+        res.m[1][1] = b.m[3][1]*m[1][3]+m[1][1]*b.m[1][1]+m[1][2]*b.m[2][1]+b.m[0][1]*m[1][0];
+        res.m[1][2] = b.m[2][2]*m[1][2]+b.m[3][2]*m[1][3]+m[1][1]*b.m[1][2]+b.m[0][2]*m[1][0];
+        res.m[1][3] = b.m[2][3]*m[1][2]+b.m[3][3]*m[1][3]+m[1][1]*b.m[1][3]+b.m[0][3]*m[1][0];
+
+
+        res.m[2][0] = b.m[3][0]*m[2][3]+m[2][0]*b.m[0][0]+m[2][1]*b.m[1][0]+m[2][2]*b.m[2][0]; 
+        res.m[2][1] = b.m[3][1]*m[2][3]+m[2][0]*b.m[0][1]+m[2][1]*b.m[1][1]+m[2][2]*b.m[2][1]; 
+        res.m[2][2] = b.m[2][2]*m[2][2]+b.m[3][2]*m[2][3]+m[2][0]*b.m[0][2]+m[2][1]*b.m[1][2]; 
+        res.m[2][3] = b.m[2][3]*m[2][2]+b.m[3][3]*m[2][3]+m[2][0]*b.m[0][3]+m[2][1]*b.m[1][3];
+        
+        res.m[3][0] = b.m[3][0]*m[3][3]+m[3][0]*b.m[0][0]+m[3][1]*b.m[1][0]+m[3][2]*b.m[2][0]; 
+        res.m[3][1] = b.m[3][1]*m[3][3]+m[3][0]*b.m[0][1]+m[3][1]*b.m[1][1]+m[3][2]*b.m[2][1]; 
+        res.m[3][2] = b.m[2][2]*m[3][2]+b.m[3][2]*m[3][3]+m[3][0]*b.m[0][2]+m[3][1]*b.m[1][2]; 
+        res.m[3][3] = b.m[2][3]*m[3][2]+b.m[3][3]*m[3][3]+m[3][0]*b.m[0][3]+m[3][1]*b.m[1][3];
+
+        return res ;
+    } 
+};
+
+
 struct Mesh
 {
+    // List of a meshes triangles
     vector<Triangle> triangles;
+    // Mesh Texture
     Image texture;
+    // Mesh Geometric Matrix
+    Matrix4x4 geometryMatrix;
 
 	bool LoadFromObjectFile(string sFilename, Image texture=NULL)
 	{
@@ -183,48 +228,14 @@ struct Mesh
 		}
 		return true;
 	}
-};
 
-struct Matrix4x4{
-    float m[4][4]= {0.0f};
-
-    double getHash(){
-        return 
-            m[0][0] + m[0][1] + m[0][2] + m[0][3] +
-            m[1][0] + m[1][1] + m[1][2] + m[1][3] + 
-            m[2][0] + m[2][1] + m[2][2] + m[2][3] + 
-            m[3][0] + m[3][1] + m[3][2] + m[3][3];  
+    // Sets the translation for matrix
+    void translate(Vect3d translation_vector){
+        geometryMatrix.m[3][0] = translation_vector.x;
+        geometryMatrix.m[3][1] = translation_vector.y;
+        geometryMatrix.m[3][2] = translation_vector.z;
     }
-
-    Matrix4x4 operator * (Matrix4x4 b){
-        Matrix4x4 res; 
-
-        res.m[0][0] = b.m[3][0]*m[0][3]+m[0][0]*b.m[0][0]+m[0][1]*b.m[1][0]+m[0][2]*b.m[2][0]; 
-        res.m[0][1] = b.m[3][1]*m[0][3]+m[0][0]*b.m[0][1]+m[0][1]*b.m[1][1]+m[0][2]*b.m[2][1]; 
-        res.m[0][2] = b.m[2][2]*m[0][2]+b.m[3][2]*m[0][3]+m[0][0]*b.m[0][2]+m[0][1]*b.m[1][2]; 
-        res.m[0][3] = b.m[2][3]*m[0][2]+b.m[3][3]*m[0][3]+m[0][0]*b.m[0][3]+m[0][1]*b.m[1][3]; 
-
-
-        res.m[1][0] = b.m[3][0]*m[1][3]+m[1][1]*b.m[1][0]+m[1][2]*b.m[2][0]+b.m[0][0]*m[1][0];
-        res.m[1][1] = b.m[3][1]*m[1][3]+m[1][1]*b.m[1][1]+m[1][2]*b.m[2][1]+b.m[0][1]*m[1][0];
-        res.m[1][2] = b.m[2][2]*m[1][2]+b.m[3][2]*m[1][3]+m[1][1]*b.m[1][2]+b.m[0][2]*m[1][0];
-        res.m[1][3] = b.m[2][3]*m[1][2]+b.m[3][3]*m[1][3]+m[1][1]*b.m[1][3]+b.m[0][3]*m[1][0];
-
-
-        res.m[2][0] = b.m[3][0]*m[2][3]+m[2][0]*b.m[0][0]+m[2][1]*b.m[1][0]+m[2][2]*b.m[2][0]; 
-        res.m[2][1] = b.m[3][1]*m[2][3]+m[2][0]*b.m[0][1]+m[2][1]*b.m[1][1]+m[2][2]*b.m[2][1]; 
-        res.m[2][2] = b.m[2][2]*m[2][2]+b.m[3][2]*m[2][3]+m[2][0]*b.m[0][2]+m[2][1]*b.m[1][2]; 
-        res.m[2][3] = b.m[2][3]*m[2][2]+b.m[3][3]*m[2][3]+m[2][0]*b.m[0][3]+m[2][1]*b.m[1][3];
-        
-        res.m[3][0] = b.m[3][0]*m[3][3]+m[3][0]*b.m[0][0]+m[3][1]*b.m[1][0]+m[3][2]*b.m[2][0]; 
-        res.m[3][1] = b.m[3][1]*m[3][3]+m[3][0]*b.m[0][1]+m[3][1]*b.m[1][1]+m[3][2]*b.m[2][1]; 
-        res.m[3][2] = b.m[2][2]*m[3][2]+b.m[3][2]*m[3][3]+m[3][0]*b.m[0][2]+m[3][1]*b.m[1][2]; 
-        res.m[3][3] = b.m[2][3]*m[3][2]+b.m[3][3]*m[3][3]+m[3][0]*b.m[0][3]+m[3][1]*b.m[1][3];
-
-        return res ;
-    } 
 };
-
 
 string vectorToString(Vect3d vector){
     return "v " +  to_string(vector.x) + " " + to_string(vector.y) + " " + to_string(vector.z); 
