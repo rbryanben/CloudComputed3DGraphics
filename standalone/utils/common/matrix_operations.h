@@ -178,5 +178,4 @@ Matrix4x4 getScalingMatrix(float scale){
     res.m[2][2] = scale;
     return res;
 }
-
 #endif
