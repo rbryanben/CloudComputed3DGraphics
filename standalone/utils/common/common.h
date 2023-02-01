@@ -14,6 +14,12 @@ using namespace std;
 // Predefine structures
 struct Mesh;
 struct Triangle;
+struct Matrix4x4;
+
+Matrix4x4 getScalingMatrix(float f);
+Matrix4x4 getMatrixRotationX(float rotationAngle);
+Matrix4x4 getMatrixRotationY(float rotationAngle);
+Matrix4x4 getMatrixRotationZ(float rotationAngle);
 
 // Precalculated
 float pi = 22.f / 7.f ;
@@ -69,6 +75,11 @@ struct Vect2d{
     float u,v;
     float w = 1 ;
 
+};
+
+// Resolution class 
+struct Resolution{
+    int width,height; 
 };
 
 // Color 
@@ -159,10 +170,7 @@ struct Matrix4x4{
 
 };
 
-Matrix4x4 getScalingMatrix(float f);
-Matrix4x4 getMatrixRotationX(float rotationAngle);
-Matrix4x4 getMatrixRotationY(float rotationAngle);
-Matrix4x4 getMatrixRotationZ(float rotationAngle);
+
 
 // Mesh Structure 
 struct Mesh
