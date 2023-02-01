@@ -11,9 +11,14 @@
 
 using namespace std;
 
+// Predefine structures
+struct Mesh;
+struct Triangle;
+
 // Precalculated
 float pi = 22.f / 7.f ;
 
+// Round to 2 decimal places
 float round_(float var)
 {
     // 37.66666 * 100 =3766.66
@@ -24,7 +29,7 @@ float round_(float var)
     return (float)value / 100;
 }
 
-//Vect3d 
+// Vect3d 
 struct Vect3d{
     float x,y,z;
     float w = 1.0f;
@@ -59,19 +64,20 @@ struct Vect3d{
     }
 };
 
+// Vect2d
 struct Vect2d{
     float u,v;
     float w = 1 ;
 
 };
 
+// Color 
 struct Color
 {
     float red = 0.0f,green=0.0f,blue = 0.0f;
 };
 
-struct Mesh;
-struct Triangle;
+// Triangle 
 struct Triangle
 {
     Vect3d p[3];
@@ -104,6 +110,7 @@ struct Triangle
 
 };
 
+// 4x4 Matrix
 struct Matrix4x4{
     float m[4][4]= {0.0f};
 
@@ -157,6 +164,7 @@ Matrix4x4 getMatrixRotationX(float rotationAngle);
 Matrix4x4 getMatrixRotationY(float rotationAngle);
 Matrix4x4 getMatrixRotationZ(float rotationAngle);
 
+// Mesh Structure 
 struct Mesh
 {
     // List of a meshes triangles
@@ -318,28 +326,7 @@ struct Mesh
     }
 };
 
-string vectorToString(Vect3d vector){
-    return "v " +  to_string(vector.x) + " " + to_string(vector.y) + " " + to_string(vector.z); 
-}
-
-string triangleToString(Triangle triangle){
-    return "t " + vectorToString(triangle.p[0]) + " " +  vectorToString(triangle.p[1]) + " " + vectorToString(triangle.p[2]);
-}
-
-string colorToString(Color color){
-    return to_string(color.red)+" "+to_string(color.green)+" "+to_string(color.blue);
-}
-
-string listTrianglesToString(vector<Triangle> triangleList){
-    string res = "";
-    for (Triangle triangle: triangleList){
-        res += (triangleToString(triangle) + " c " + colorToString(triangle.color) + "/n");
-    }
-
-    return res;
-}
-
-
+// Max 
 float f_max(float a,float b){
     if (a > b) return a ;
     return b;
@@ -349,7 +336,6 @@ float f_min(float a, float b){
     if (a < b) return a;
     return b;
 }
-
 
 // Cross Producut
 Vect3d VectorCrossProduct(Vect3d line1, Vect3d line2){
@@ -366,13 +352,20 @@ float VectorLength(Vect3d vector){
     return sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 }
 
-
 // Normalize Vector (To Screen Space)
 void NormalizeVector(Vect3d &vector){
     float l = VectorLength(vector);
     vector.x /= l;
     vector.y /= l;
     vector.z /= l;
+}
+
+Vect3d VectorNormalize(Vect3d &v1){
+    float l = VectorLength(v1);
+    if (l != 0){
+        return {v1.x / l , v1.y / l, v1.z / l, 1};
+    }
+    return {v1.x,v1.y,v1.z,1};
 }
 
 // Vector Dot Product
@@ -447,15 +440,6 @@ vector<Triangle> sortTriangleList(vector<Triangle> triangleList){
     greater.insert(greater.end(),lesser.begin(),lesser.end());
     return greater;
 }
-
-Vect3d VectorNormalize(Vect3d &v1){
-    float l = VectorLength(v1);
-    if (l != 0){
-        return {v1.x / l , v1.y / l, v1.z / l, 1};
-    }
-    return {v1.x,v1.y,v1.z,1};
-}
-
 
 // Calculates where a vector intersects a plane
 Vect3d vectorIntersectPlane(Vect3d plane_p, Vect3d plane_n, Vect3d lineStart,Vect3d lineEnd,float &t){
@@ -691,6 +675,8 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
     }
 
 }
+
+// Returns normal to a triangle 
 Vect3d getTriangleNormal(Triangle &tri){
     Vect3d normal,line1,line2;
     line1 = tri.p[1] - tri.p[0];
@@ -705,7 +691,6 @@ bool areEqual(float a, float b, float threshold) {
     if (abs(a - b) <= threshold) return true;
     return false;
 }
-
 
 
 #endif
