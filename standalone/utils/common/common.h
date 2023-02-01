@@ -71,6 +71,7 @@ struct Color
 };
 
 struct Mesh;
+struct Triangle;
 struct Triangle
 {
     Vect3d p[3];
@@ -78,7 +79,9 @@ struct Triangle
     Color color ;
     Image* texture;
     Mesh* parent;
-    
+
+    // This is used in shadow mapping, we need to refere back to the original MatViewdPoint 
+
     bool operator ==  (Triangle &other){
         if (other.p[0] == p[0]
             && other.p[1] == p[1]
@@ -98,8 +101,8 @@ struct Triangle
         // Copy color as well 
         this->color = triangle.color;
     }
-};
 
+};
 
 struct Matrix4x4{
     float m[4][4]= {0.0f};
@@ -110,6 +113,12 @@ struct Matrix4x4{
             m[1][0] + m[1][1] + m[1][2] + m[1][3] + 
             m[2][0] + m[2][1] + m[2][2] + m[2][3] + 
             m[3][0] + m[3][1] + m[3][2] + m[3][3];  
+    }
+
+    void setTranslation(Vect3d translation){
+        m[3][0] = translation.x;
+        m[3][1] = translation.y;
+        m[3][2] = translation.z;
     }
 
     Matrix4x4 operator * (Matrix4x4 b){
@@ -139,6 +148,8 @@ struct Matrix4x4{
 
         return res ;
     } 
+
+
 };
 
 Matrix4x4 getScalingMatrix(float f);
@@ -687,6 +698,12 @@ Vect3d getTriangleNormal(Triangle &tri){
     normal = VectorCrossProduct(line1,line2);
     NormalizeVector(normal);
     return normal;
+}
+
+// Calculates if floating points are equal
+bool areEqual(float a, float b, float threshold) {
+    if (abs(a - b) <= threshold) return true;
+    return false;
 }
 
 

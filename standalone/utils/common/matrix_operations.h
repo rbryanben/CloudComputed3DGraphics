@@ -13,15 +13,19 @@ float MultiplyMatrixVector(Vect3d &i, Vect3d &o, Matrix4x4 &m){
     float w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + m.m[3][3]; 		// is simply z 
     o.w = w;
 
-    // Normalize Z - as Z is larger x and y get smaller
+     // Normalize Z - as Z is larger x and y get smaller
     if (w != 0.0f) { 			
         o.x /= w; 
         o.y /= w; 
         o.z /= w; 		
     } 	
 
+   
+
     return w;
 }
+
+
 
 
 // Vector Multiply Matrix & Normalize Z
@@ -40,6 +44,16 @@ Vect3d MatrixMultiplyVector(Matrix4x4 &matrix,Vect3d &vector){
 
     return res;
 }
+
+Vect3d MatrixMultiplyVectorWN(Matrix4x4 &matrix,Vect3d &vector){
+    Vect3d res;
+    res.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] +  matrix.m[3][0];
+    res.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] +  matrix.m[3][1];
+    res.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] +  matrix.m[3][2];
+    res.w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + matrix.m[3][3];
+    return res;
+}
+
 
 // Make Identity Matrix 
 Matrix4x4 Matrix4x4_MakeIdentity(){

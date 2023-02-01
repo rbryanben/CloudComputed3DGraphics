@@ -70,19 +70,7 @@ class W3DGraphics {
             float w1 = tri.t[0].w ;
             float w2 = tri.t[1].w ;
             float w3 = tri.t[2].w ;
-
-            // Original points 
-            float t_x1 = orignal_triangle.p[0].x;
-            float t_y1 = orignal_triangle.p[0].y;
-            float t_z1 = orignal_triangle.p[0].z;
-           
-            float t_x2 = orignal_triangle.p[1].x;
-            float t_y2 = orignal_triangle.p[1].y;
-            float t_z2 = orignal_triangle.p[1].z;
-
-            float t_x3 = orignal_triangle.p[2].x;
-            float t_y3 = orignal_triangle.p[2].y;
-            float t_z3 = orignal_triangle.p[2].z;            
+    
 
             // Sort Points 
             if (y2 < y1){
@@ -92,10 +80,6 @@ class W3DGraphics {
                 swap(v2,v1);
                 swap(w2,w1);
 
-                // Swap original points 
-                swap(t_y2,t_y1);
-                swap(t_x2,t_x1);
-                swap(t_z2,t_z1);
             }
 
             if (y3 < y1){
@@ -105,10 +89,6 @@ class W3DGraphics {
                 swap(v3,v1);
                 swap(w3,w1);
 
-                // Swap original points
-                swap(t_y3,t_y1);
-                swap(t_x3,t_x1);
-                swap(t_z3,t_z1);
             }
 
             if (y3 < y2){
@@ -117,11 +97,6 @@ class W3DGraphics {
                 swap(u3,u2);
                 swap(v3,v2);
                 swap(w3,w2);
-
-                // Swap original points
-                swap(t_y3,t_y2);
-                swap(t_x3,t_x2);
-                swap(t_z3,t_z2);
             }
 
             // Args 
@@ -137,19 +112,9 @@ class W3DGraphics {
             float du2 = u3 - u1;
             float dw2 = w3 - w1;
 
-            
-            // original points
-            float t_dy1 = t_y2 - t_y1;
-            float t_dx1 = t_x2 - t_x1;
-            float t_dz1 = t_z2 - t_z1;
 
-            float t_dy2 = t_y3 - t_y1;
-            float t_dx2 = t_x3 - t_x1;
-            float t_dz2 = t_z3 - t_z1; 
-
-        
             // Calculate dx_1 and dx_2 
-            float dax_step = 0, t_dax_step = 0,t_day_step = 0, t_dby_step= 0,t_dbx_step =0,t_daz_step = 0,t_dbz_step = 0,dbx_step = 0, dw1_step= 0, dw2_step = 0,
+            float dax_step = 0, dbx_step = 0, dw1_step= 0, dw2_step = 0,
                 du1_step = 0, dv1_step = 0,
                 du2_step =0, dv2_step = 0 ;
 
@@ -160,52 +125,45 @@ class W3DGraphics {
             if (dy1) dax_step = dx1 / (float)abs(dy1); //float absolutes 
             if (dy2) dbx_step = dx2 / (float)abs(dy2); 
 
-            if (dy1) t_dax_step = t_dx1 / (float)abs(dy1);
-            if (dy2) t_dbx_step = t_dx2 / (float)abs(dy2);
-
-            if (dy1) t_day_step = t_dy1 / (float)abs(dy1);
-            if (dy2) t_dby_step = t_dy2 / (float)abs(dy2);
-
-            if (dy1) t_daz_step = t_dz1 / (float)abs(dy1);
-            if (dy2) t_dbz_step = t_dz2/(float)abs(dy2);
-
             if (dy1) dv1_step = dv1/  (float)abs(dy1);
             if (dy1) du1_step = du1/ (float)abs(dy1);
             if (dy1) dw1_step = dw1 / (float)abs(dy1);
-            
+
 
             if (dy2) dv2_step = dv2/ (float)abs(dy2);
             if (dy2) du2_step = du2/ (float)abs(dy2);
             if (dy2) dw2_step = dw2/ (float)abs(dy2);
-           
 
             // Draw top half 
             if (dy1){
                 // Move y 
-                for (int i = y1; i < y2;i++){
+                for (int i = y1; i <= y2;i++){
                     // Calculate the starting and ending x 
                     int ax = x1 + (float)(i - y1) * dax_step;
                     int bx = x1 + (float)(i - y1) * dbx_step;
 
-                    float t_ax = t_x1 + (float)(i - y1) * t_dax_step;
-                    float t_bx = t_x1 + (float)(i - y1) * t_dbx_step;
-
-                    float t_ay = t_y1 + (float)(i - y1) * t_day_step;
-                    float t_by = t_y1 + (float)(i - y1) * t_dby_step;
-
-                    float t_az = t_z1 + (float)(i - y1) * t_daz_step;
-                    float t_bz = t_z1 + (float)(i - y1) * t_dbz_step;
-
-
                     float tex_su = u1 + (float)(i - y1) * du1_step;
                     float tex_sv = v1 + (float)(i - y1) * dv1_step;
                     float tex_sw = w1 + (float)(i - y1) * dw1_step;
-                   
 
                     float tex_eu = u1 + (float)(i - y1) * du2_step;
                     float tex_ev = v1 + (float)(i - y1) * dv2_step;
                     float tex_ew = w1 + (float)(i - y1) * dw2_step;
                     
+
+                    // Starting original x and y
+                    float relativeY = 0; 
+                    float relative_starting_x = 0;
+                    float relative_ending_x = 0;
+                    float relative_starting_w = 0, relative_ending_w = 0; 
+
+                    if (y2 - y1) relativeY = (float)(i - y1 ) / (y3 - y1); 
+                    if (x2 - x1) relative_starting_x = (float) (ax - x1) / (x2 - x1);
+                    if (x3 - x1) relative_ending_x = (float)(bx - x1) / (x3 - x1);
+                    if (w2 - w1) relative_starting_w = (float)(tex_sw - w1)/(w2 - w1);
+                    if (w3 - w1) relative_ending_w = (float)(tex_ew - w1)/ (w3 - w1);
+
+
 
                     // Sort the x axis
                     if (ax > bx){
@@ -213,11 +171,6 @@ class W3DGraphics {
                         swap(tex_su,tex_eu);
                         swap(tex_sv,tex_ev);
                         swap(tex_sw,tex_ew);
-
-                        // Swap the original co-ordinates
-                        swap(t_ax,t_bx);
-                        swap(t_az,t_bz);
-                        swap(t_ay,t_by);
                     }
 
                     tex_u = tex_su;
@@ -227,54 +180,15 @@ class W3DGraphics {
                     float tstep = 1.0f / ((float)(bx - ax));
                     float t = 0.0f;
 
-                    for (int j = ax; j < bx; j++){
+                    for (int j = ax; j <= bx; j++){
                         tex_u = (1.0f - t) * tex_su + t * tex_eu;
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-                        float tx = (1.0f - t) * t_ax + t * t_bx;
-                        float tz = (1.0f - t) * t_az + t * t_bz;
-                        float ty = (1.0f - t) * t_ay + t * t_by;
-
-                        Vect3d pointInWorldSpace = {tx,ty,tz,1};
                        
                         RGB pixel = tri.texture->getPixelAt((tex_v/tex_w) * (tri.texture->getHeight() - 1),(tex_u/tex_w) * (tri.texture->getWidth() - 1));
                         glColor3f(pixel.r * 0.2f,pixel.g * 0.2f,pixel.b * 0.2f);
 
-                        // Check if the point is visible from the light source
-                        // Prototype Light Buffer 
-                        Vect3d vOffsetView = {1,1,0};
-                        Matrix4x4 lightViewd = dLight.get4x4MatrixInverse();
-                        Vect3d pointViewd,pointProjected;
-  
-
-                        MultiplyMatrixVector(pointInWorldSpace,pointViewd,lightViewd);
-
-                        //
-                        // Project the polygons(Some normalization takes place here)
-                        //      At this point we project the 3D co-ordinates on to a 3D scene
-                        float w0 = MultiplyMatrixVector(pointViewd,pointProjected,this->projectionMatrix);
-                        float depth = 1.f / w0;
-
-                        // Offset to the center
-                        pointProjected = pointProjected + vOffsetView;
-                        
-                        // Scale to the window width  
-                        //  this centeres the triangle
-                        pointProjected = pointProjected * (0.5f * this->window_width);
-                        int pos = ((int)pointProjected.y * this->window_width) + (int)pointProjected.x;
-                        float depthInDlightDepthBuffer = dLightDepthBuffer[pos];
-        
-
-                        // If  x or why is negative then dont considerer 
-                        bool lightBufferVisible = true;
-                        if (pointProjected.x < 0 || pointProjected.y < 0 || pointProjected.x > this->window_width || pointProjected.y > this->window_height) lightBufferVisible = false;
-                    
-                        if (lightBufferVisible && areEqual(depthInDlightDepthBuffer,depth,0.002f)){
-                            glColor3f(pixel.r,pixel.g,pixel.b);
-                        }
-                        
-                   
                   
                         if ( i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
                             && tex_w > depthBuffer[i * this->window_width + j]){
@@ -292,27 +206,14 @@ class W3DGraphics {
 
             //  Arguments 
             dy1 = y3 - y2;
-
             dx1 = x3 - x2;
-
-            // original points 
-            t_dx1 = t_x3 - t_x2;
-            t_dy1 = t_y3 - t_y2;
-            t_dz1 = t_z3 - t_z2;
-   
             dv1 = v3 - v2;
             du1 = u3 - u2;
             dw1 = w3 - w2;
-            
+           
+
             if (dy1) dax_step = dx1 / (float)abs(dy1);
-            if (dy1) t_dax_step = t_dx1 / (float)abs(dy1);
-            if (dy1) t_day_step = t_dy1 / (float)abs(dy1);
-            if (dy1) t_daz_step = t_dz1 / (float)abs(dy1);
-        
             if (dy2) dbx_step = dx2 / (float)abs(dy2);
-            if (dy2) t_dbx_step = t_dx2 / (float)abs(dy2); 
-            if (dy2) t_dby_step = t_dy2 / (float)abs(dy2);
-            if (dy2) t_dbz_step = t_dz2 / (float)abs(dy2);
 
             du1_step = 0, dv1_step = 0;
             if (dy1) du1_step = du1 / (float)abs(dy1);
@@ -322,7 +223,7 @@ class W3DGraphics {
             // Draw the bttom half  
             if (dy1)
             {
-                for (int i = y2; i < y3; i++)
+                for (int i = y2; i <= y3; i++)
                 {
                     // Calculate differentials 
                     int ax = x2 + (float)(i - y2) * dax_step;
@@ -336,14 +237,18 @@ class W3DGraphics {
                     float tex_ev = v1 + (float)(i - y1) * dv2_step;
                     float tex_ew = w1 + (float)(i - y1) * dw2_step;
 
-                    float t_ax = t_x2 + (float)(i - y2) * t_dax_step;
-                    float t_bx = t_x1 + (float)(i - y1) * t_dbx_step;
+                    // Starting original x and y 
+                    float relativeY = 0; 
+                    float relative_starting_x = 0;
+                    float relative_ending_x = 0;
+                    float relative_starting_w = 0, relative_ending_w = 0; 
 
-                    float t_ay = t_y2 + (float)(i - y2) * t_day_step;
-                    float t_by = t_y1 + (float)(i - y1) * t_dby_step;
 
-                    float t_az = t_z2 + (float)(i - y2) * t_daz_step;
-                    float t_bz = t_z1 + (float)(i - y1) * t_dbz_step;
+                    if (y3 - y1) relativeY = (float)(i - y1) / (y3 - y1); 
+                    if (x3 - x2) relative_starting_x = (float)(ax - x2) / (x3 - x2); 
+                    if (x3 - x1) relative_ending_x = (float)(bx - x1) / (x3 - x1); // Remained the same from the top 
+                    if (w3 - w2) relative_starting_w = (float)(tex_sw - w2)/(w3 - w2);
+                    if (w3 - w1) relative_ending_w = (float)(tex_ew - w1) / (w3 - w1);
 
 
                     if (ax > bx)
@@ -352,12 +257,6 @@ class W3DGraphics {
                         swap(tex_su, tex_eu);
                         swap(tex_sv, tex_ev);
                         swap(tex_sw, tex_ew);
-
-                        // Swap the original co-ordinates
-                        swap(t_ax,t_bx);
-                        swap(t_az,t_bz);
-                        swap(t_ay,t_by);
-
                     }
 
                     tex_u = tex_su;
@@ -374,51 +273,9 @@ class W3DGraphics {
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-                        float tx = (1.0f - t) * t_ax + t * t_bx;
-                        float tz = (1.0f - t) * t_az + t * t_bz;
-                        float ty = (1.0f - t) * t_ay + t * t_by;
-
-                        Vect3d pointInWorldSpace = {tx,ty,tz,1};
-
 
                         RGB pixel = tri.texture->getPixelAt((tex_v/tex_w) * (tri.texture->getHeight() - 1),(tex_u/tex_w) * (tri.texture->getWidth() - 1));
                         glColor3f(pixel.r * 0.2,pixel.g * 0.2,pixel.b * 0.2);
-
-                        // Check if the point is visible from the light source
-                        // Prototype Light Buffer 
-                        Vect3d vOffsetView = {1,1,0};
-                        Matrix4x4 lightViewd = dLight.get4x4MatrixInverse();
-                        Vect3d pointViewd,pointProjected;
-  
-
-                        MultiplyMatrixVector(pointInWorldSpace,pointViewd,lightViewd);
-
-                        //
-                        // Project the polygons(Some normalization takes place here)
-                        //      At this point we project the 3D co-ordinates on to a 3D scene
-                        float w0 = MultiplyMatrixVector(pointViewd,pointProjected,this->projectionMatrix);
-                        float depth = 1.f / w0;
-
-                        // Offset to the center
-                        pointProjected = pointProjected + vOffsetView;
-                        
-                        // Scale to the window width  
-                        //  this centeres the triangle
-                        pointProjected = pointProjected * (0.5f * this->window_width);
-                        int pos = ((int)pointProjected.y * this->window_width) + (int)pointProjected.x;
-                        float depthInDlightDepthBuffer = dLightDepthBuffer[pos];
-
-          
-        
-                    
-                        // If  x or why is negative then dont considerer 
-                        bool lightBufferVisible = true;
-                        if (pointProjected.x < 0 || pointProjected.y < 0 || pointProjected.x > this->window_width || pointProjected.y > this->window_height) lightBufferVisible = false;
-                    
-                        if (lightBufferVisible && areEqual(depthInDlightDepthBuffer,depth,0.002f)){
-                            glColor3f(pixel.r,pixel.g,pixel.b);
-                        }
-                        
                         if (i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
                             && tex_w > depthBuffer[i * this->window_width + j]){
                             glVertex2i(j,i);
@@ -430,168 +287,9 @@ class W3DGraphics {
                 }	
             }		
             glEnd();
-            //drawTriangleLines(tri);
-
-        
+            drawTriangleLines(tri);
         }
-        
 
-        // Render to depth buffer 
-        float* dLightDepthBuffer; 
-        // Textured Triangle
-        void renderToDepthBuffer(Triangle tri){
-            // GL_BEGIN
-            glBegin(GL_POINTS);
-            
-            // Points 
-            int x1 = tri.p[0].x;
-            int y1 = tri.p[0].y;
-            
-            int x2 = tri.p[1].x;
-            int y2 = tri.p[1].y; 
-
-            int x3 = tri.p[2].x;
-            int y3 = tri.p[2].y;
-
-            float w1 = tri.t[0].w ;
-            float w2 = tri.t[1].w ;
-            float w3 = tri.t[2].w ;
-
-
-            // Sort Points 
-            if (y2 < y1){
-                swap(y2,y1);
-                swap(x2,x1);
-                swap(w2,w1);
-            }
-
-            if (y3 < y1){
-                swap(y3,y1);
-                swap(x3,x1);
-                swap(w3,w1);
-            }
-
-            if (y3 < y2){
-                swap(y3,y2);
-                swap(x3,x2);
-                swap(w3,w2);
-            }
-
-            // Args 
-            int dy1 = y2 - y1 ;
-            int dx1 = x2 - x1 ;
-            float dw1 = w2 - w1 ;
-
-            int dy2 = y3 - y1;
-            int dx2 = x3 - x1;
-            float dw2 = w3 - w1;
-
-
-            // Calculate dx_1 and dx_2 
-            float dax_step = 0, dbx_step = 0, dw1_step= 0, dw2_step = 0,
-                du1_step = 0, dv1_step = 0,
-                du2_step =0, dv2_step = 0 ;
-
-            float tex_u,tex_v, tex_w;
-
-
-            // Calculate differentials 
-            if (dy1) dax_step = dx1 / (float)abs(dy1); //float absolutes 
-            if (dy2) dbx_step = dx2 / (float)abs(dy2); 
-            if (dy1) dw1_step = dw1 / (float)abs(dy1);
-            if (dy2) dw2_step = dw2/ (float)abs(dy2);
-
-            // Draw top half 
-            if (dy1){
-                // Move y 
-                for (int i = y1; i <= y2;i++){
-                    int ax = x1 + (float)(i - y1) * dax_step;
-                    int bx = x1 + (float)(i - y1) * dbx_step;
-                    float tex_sw = w1 + (float)(i - y1) * dw1_step;
-                    float tex_ew = w1 + (float)(i - y1) * dw2_step;
-
-                    // Sort the x axis
-                    if (ax > bx){
-                        swap(ax,bx);
-                        swap(tex_sw,tex_ew);
-                    }
-
-                    tex_w = tex_sw;
-
-                    float tstep = 1.0f / ((float)(bx - ax));
-                    float t = 0.0f;
-
-                    for (int j = ax; j <= bx; j++){
-                        tex_w = (1.0f - t) * tex_sw + t * tex_ew;
-                        // Potential Bug here 
-                        if ( i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
-                            && tex_w > dLightDepthBuffer[i * this->window_width + j]){
-                            glColor3f(tex_w,tex_w,tex_w);
-                            glVertex2i(j,i);
-                            dLightDepthBuffer[i * this->window_width + j] = tex_w;
-                        }
-
-                        t += tstep;
-                    }
-
-                }
-            }
-
-            dy1 = y3 - y2;
-            dx1 = x3 - x2;
-            dw1 = w3 - w2;
-           
-
-            if (dy1) dax_step = dx1 / (float)abs(dy1);
-            if (dy2) dbx_step = dx2 / (float)abs(dy2);
-
-            du1_step = 0, dv1_step = 0;
-            if (dy1) dw1_step = dw1 / (float)abs(dy1);
-
-
-            if (dy1)
-            {
-                for (int i = y2; i <= y3; i++)
-                {
-                    int ax = x2 + (float)(i - y2) * dax_step;
-                    int bx = x1 + (float)(i - y1) * dbx_step;
-                    float tex_sw = w2 + (float)(i - y2) * dw1_step;
-                    float tex_ew = w1 + (float)(i - y1) * dw2_step;
-
-
-                    if (ax > bx)
-                    {
-                        swap(ax, bx);
-                        swap(tex_sw, tex_ew);
-
-                    }
-
-                    tex_w = tex_sw;
-
-
-                    float tstep = 1.0f / ((float)(bx - ax));
-                    float t = 0.0f;
-
-                    for (int j = ax; j < bx; j++)
-                    {
-                        tex_w = (1.0f - t) * tex_sw + t * tex_ew;
-                        
-                        if (i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
-                            && tex_w >  dLightDepthBuffer[i * this->window_width + j]){
-                            glColor3f(tex_w,tex_w,tex_w);
-                            glVertex2i(j,i);
-                            dLightDepthBuffer[i * this->window_width + j] = tex_w;
-                        }
-
-                        t += tstep;
-                    }
-                }	
-            }		
-            glEnd();
-            
-
-        
-        }
         // Draws the texture ppm 
         void drawTexture(){
             //GL Begin
@@ -739,10 +437,6 @@ class W3DGraphics {
             
             // Configure camera
             this->sceneCamera = W3Camera({0,0,-5,1});
-
-            // Directional light prototype - translate light 
-            this->dLightDepthBuffer = new float[this->window_width * this->window_height];
-            this->dLight.setTranslation({0,0,-5});
         }
         
         // onUserInput
@@ -786,30 +480,6 @@ class W3DGraphics {
                     this->lightSource.z -= 5 ;
                     break;
 
-                // Dlight keys 
-                //y - move foward
-                case 'y':
-                    this->dLight.moveFoward(3);
-                    break;
-                //h - move back
-                case 'h':
-                    this->dLight.moveBack();
-                    break;
-                //g - rotate right
-                case 'g':
-                    this->dLight.rotateY(-0.02);
-                    break;
-                //j - rotate left
-                case 'j':
-                    this->dLight.rotateY(0.02);
-                    break;
-                //k move left 
-                case 'k':
-                    this->dLight.moveLeft(0.5);
-                    break;
-                      
-                default:
-                    break;
             }
         }
 
@@ -820,9 +490,7 @@ class W3DGraphics {
                 this->depthBuffer[i] = 0 ; 
             }
         }
-       
-        // Directional light protoype 
-        W3Camera dLight = W3Camera(0.5f);
+
 
         //Called every time the window updates     
         void onWindowUpdate(){
@@ -859,78 +527,6 @@ class W3DGraphics {
                 }
             }
 
-            // Prototype Light Buffer 
-            Matrix4x4 lightViewd = dLight.get4x4MatrixInverse();
-            vector<Triangle> lightProjected;
-
-            for (Triangle tri: combinedMeshesTriangles){
-                // Determine the normal so that we do not draw triangles that are not facing us
-                Vect3d normal,line1,line2 ;
-                Triangle triProjected;
-                line1 = tri.p[1] - tri.p[0];
-                line2 = tri.p[2] - tri.p[0]; 
-                normal = VectorCrossProduct(line1,line2);
-                NormalizeVector(normal);
-
-    
-
-                // Light ray to triangle 
-                Vect3d vLightRay = tri.p[0] - this->dLight.getTranslation();
-
-                if (VectorDotProduct(vLightRay,normal) < 0
-                    ){
-                    
-                    //
-                    // Camera - From here the entire view is inversed to the camera's view 
-                    Triangle triViewd; 
-                    MultiplyMatrixVector(tri.p[0],triViewd.p[0],lightViewd);
-                    MultiplyMatrixVector(tri.p[1],triViewd.p[1],lightViewd);
-                    MultiplyMatrixVector(tri.p[2],triViewd.p[2],lightViewd);
-
-                    // Clip the triangles against the axis
-                    vector<Triangle> clippedZ = clipTriangleAgainstPlane({0,0,0.1f,1},{0,0,1,1},triViewd); 
-
-                    for (auto tri : clippedZ){  
-
-                        //
-                        // Project the polygons(Some normalization takes place here)
-                        //      At this point we project the 3D co-ordinates on to a 3D scene
-                        float w0 = MultiplyMatrixVector(tri.p[0],triProjected.p[0],this->projectionMatrix);
-                        float w1 = MultiplyMatrixVector(tri.p[1],triProjected.p[1],this->projectionMatrix);
-                        float w2 = MultiplyMatrixVector(tri.p[2],triProjected.p[2],this->projectionMatrix);
-
-                        triProjected.t[0].w = 1.f / w0;
-                        triProjected.t[1].w = 1.f / w1;
-                        triProjected.t[2].w = 1.f / w2;  
-
-                        // Offset to the center
-                        triProjected.p[0] = triProjected.p[0] + vOffsetView;
-                        triProjected.p[1] = triProjected.p[1] + vOffsetView;
-                        triProjected.p[2] = triProjected.p[2] + vOffsetView;
-
-                        // Scale to the window width  
-                        //  this centeres the triangle
-                        triProjected.p[0] = triProjected.p[0] * (0.5f * this->window_width);
-                        triProjected.p[1] = triProjected.p[1] * (0.5f * this->window_width);
-                        triProjected.p[2] = triProjected.p[2] * (0.5f * this->window_width);
-
-                        // Add to vertex_list 
-                        lightProjected.push_back(triProjected);
-                    }
-                }
-        
-            }
-            
-            // Clear depth buffer 
-            for (int i=0;i != this->window_width * this->window_height; i++){
-                dLightDepthBuffer[i]=0;
-            }
-            
-            // Render 
-            for (Triangle tri: lightProjected){
-                renderToDepthBuffer(tri);
-            }
-
 
             //draw triangles - scene is combined from this point 
             for (Triangle tri : combinedMeshesTriangles){
@@ -960,9 +556,11 @@ class W3DGraphics {
                     //
                     // Camera - From here the entire view is inversed to the camera's view 
                     Triangle triViewd; 
-                    MultiplyMatrixVector(tri.p[0],triViewd.p[0],matViewd);
-                    MultiplyMatrixVector(tri.p[1],triViewd.p[1],matViewd);
-                    MultiplyMatrixVector(tri.p[2],triViewd.p[2],matViewd);
+                    triViewd.p[0] = MatrixMultiplyVectorWN(matViewd,tri.p[0]);
+                    triViewd.p[1] = MatrixMultiplyVectorWN(matViewd,tri.p[1]);
+                    triViewd.p[2] = MatrixMultiplyVectorWN(matViewd,tri.p[2]);
+
+                
 
                     // Copy texture
                     tri.color = color;
@@ -1059,14 +657,14 @@ int main(int argc, char **argv)
     crate2.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
     crate2.scale(5);
     crate2.translate({0,0,10});
-    graphicsEngine.addToScene(crate2);
+    //graphicsEngine.addToScene(crate2);
 
     // Basement Entry 
     Mesh basement = Mesh("basement");
     basement.LoadFromObjectFile("./assets/objs/basement_entry/basement_entry.obj",readPPM("./assets/objs/basement_entry/Image_9.ppm"));
     basement.rotateZ(180);
     basement.translate({0,0,5});
-    graphicsEngine.addToScene(basement);
+    //graphicsEngine.addToScene(basement);
     
 
     // Pathwalk 

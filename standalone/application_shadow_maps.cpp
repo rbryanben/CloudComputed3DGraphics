@@ -137,19 +137,9 @@ class W3DGraphics {
             float du2 = u3 - u1;
             float dw2 = w3 - w1;
 
-            
-            // original points
-            float t_dy1 = t_y2 - t_y1;
-            float t_dx1 = t_x2 - t_x1;
-            float t_dz1 = t_z2 - t_z1;
 
-            float t_dy2 = t_y3 - t_y1;
-            float t_dx2 = t_x3 - t_x1;
-            float t_dz2 = t_z3 - t_z1; 
-
-        
             // Calculate dx_1 and dx_2 
-            float dax_step = 0, t_dax_step = 0,t_day_step = 0, t_dby_step= 0,t_dbx_step =0,t_daz_step = 0,t_dbz_step = 0,dbx_step = 0, dw1_step= 0, dw2_step = 0,
+            float dax_step = 0, dbx_step = 0, dw1_step= 0, dw2_step = 0,
                 du1_step = 0, dv1_step = 0,
                 du2_step =0, dv2_step = 0 ;
 
@@ -160,24 +150,14 @@ class W3DGraphics {
             if (dy1) dax_step = dx1 / (float)abs(dy1); //float absolutes 
             if (dy2) dbx_step = dx2 / (float)abs(dy2); 
 
-            if (dy1) t_dax_step = t_dx1 / (float)abs(dy1);
-            if (dy2) t_dbx_step = t_dx2 / (float)abs(dy2);
-
-            if (dy1) t_day_step = t_dy1 / (float)abs(dy1);
-            if (dy2) t_dby_step = t_dy2 / (float)abs(dy2);
-
-            if (dy1) t_daz_step = t_dz1 / (float)abs(dy1);
-            if (dy2) t_dbz_step = t_dz2/(float)abs(dy2);
-
             if (dy1) dv1_step = dv1/  (float)abs(dy1);
             if (dy1) du1_step = du1/ (float)abs(dy1);
             if (dy1) dw1_step = dw1 / (float)abs(dy1);
-            
+
 
             if (dy2) dv2_step = dv2/ (float)abs(dy2);
             if (dy2) du2_step = du2/ (float)abs(dy2);
             if (dy2) dw2_step = dw2/ (float)abs(dy2);
-           
 
             // Draw top half 
             if (dy1){
@@ -187,25 +167,33 @@ class W3DGraphics {
                     int ax = x1 + (float)(i - y1) * dax_step;
                     int bx = x1 + (float)(i - y1) * dbx_step;
 
-                    float t_ax = t_x1 + (float)(i - y1) * t_dax_step;
-                    float t_bx = t_x1 + (float)(i - y1) * t_dbx_step;
-
-                    float t_ay = t_y1 + (float)(i - y1) * t_day_step;
-                    float t_by = t_y1 + (float)(i - y1) * t_dby_step;
-
-                    float t_az = t_z1 + (float)(i - y1) * t_daz_step;
-                    float t_bz = t_z1 + (float)(i - y1) * t_dbz_step;
-
-
                     float tex_su = u1 + (float)(i - y1) * du1_step;
                     float tex_sv = v1 + (float)(i - y1) * dv1_step;
                     float tex_sw = w1 + (float)(i - y1) * dw1_step;
-                   
 
                     float tex_eu = u1 + (float)(i - y1) * du2_step;
                     float tex_ev = v1 + (float)(i - y1) * dv2_step;
                     float tex_ew = w1 + (float)(i - y1) * dw2_step;
                     
+
+                    // Starting original x and y
+                    float relativeY = 0; 
+                    float relative_starting_x = 0;
+                    float relative_ending_x = 0;
+                    float relative_starting_w = 0, relative_ending_w = 0; 
+
+                    if (y2 - y1) relativeY = (float)(i - y1 ) / (y3 - y1); 
+                    if (x2 - x1) relative_starting_x = (float) (ax - x1) / (x2 - x1);
+                    if (x3 - x1) relative_ending_x = (float)(bx - x1) / (x3 - x1);
+                    if (w2 - w1) relative_starting_w = (float)(tex_sw - w1)/(w2 - w1);
+                    if (w3 - w1) relative_ending_w = (float)(tex_ew - w1)/ (w3 - w1);
+
+                    float t_y = t_y1 + (relativeY * (t_y3 - t_y1)); 
+                    float t_ax = t_x1 + (relative_starting_x * (t_x2 - t_x1));
+                    float t_bx = t_x1 + (relative_ending_x * (t_x3 - t_x1));
+                    float t_az = t_z1 + (relative_starting_w * (t_z2 - t_z1));
+                    float t_bz = t_z1 + (relative_ending_w * (t_z3 - t_z1));
+
 
                     // Sort the x axis
                     if (ax > bx){
@@ -217,7 +205,6 @@ class W3DGraphics {
                         // Swap the original co-ordinates
                         swap(t_ax,t_bx);
                         swap(t_az,t_bz);
-                        swap(t_ay,t_by);
                     }
 
                     tex_u = tex_su;
@@ -227,16 +214,15 @@ class W3DGraphics {
                     float tstep = 1.0f / ((float)(bx - ax));
                     float t = 0.0f;
 
-                    for (int j = ax; j < bx; j++){
+                    for (int j = ax; j <= bx; j++){
                         tex_u = (1.0f - t) * tex_su + t * tex_eu;
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-                        float tx = (1.0f - t) * t_ax + t * t_bx;
-                        float tz = (1.0f - t) * t_az + t * t_bz;
-                        float ty = (1.0f - t) * t_ay + t * t_by;
-
-                        Vect3d pointInWorldSpace = {tx,ty,tz,1};
+                        // original x, y and z and put it into a point in world space  
+                        float ref_x =  (1.0f - t) * t_ax + t * t_bx;
+                        float ref_z =  (1.0f - t) * t_az + t * t_bz;
+                        Vect3d pointInWorldSpace = {ref_x,t_y,ref_z,1};
                        
                         RGB pixel = tri.texture->getPixelAt((tex_v/tex_w) * (tri.texture->getHeight() - 1),(tex_u/tex_w) * (tri.texture->getWidth() - 1));
                         glColor3f(pixel.r * 0.2f,pixel.g * 0.2f,pixel.b * 0.2f);
@@ -273,7 +259,6 @@ class W3DGraphics {
                         if (lightBufferVisible && areEqual(depthInDlightDepthBuffer,depth,0.002f)){
                             glColor3f(pixel.r,pixel.g,pixel.b);
                         }
-                        
                    
                   
                         if ( i >= 0 && j >= 0 && i * this->window_width + j < this->window_height * this->window_width 
@@ -292,27 +277,14 @@ class W3DGraphics {
 
             //  Arguments 
             dy1 = y3 - y2;
-
             dx1 = x3 - x2;
-
-            // original points 
-            t_dx1 = t_x3 - t_x2;
-            t_dy1 = t_y3 - t_y2;
-            t_dz1 = t_z3 - t_z2;
-   
             dv1 = v3 - v2;
             du1 = u3 - u2;
             dw1 = w3 - w2;
-            
+           
+
             if (dy1) dax_step = dx1 / (float)abs(dy1);
-            if (dy1) t_dax_step = t_dx1 / (float)abs(dy1);
-            if (dy1) t_day_step = t_dy1 / (float)abs(dy1);
-            if (dy1) t_daz_step = t_dz1 / (float)abs(dy1);
-        
             if (dy2) dbx_step = dx2 / (float)abs(dy2);
-            if (dy2) t_dbx_step = t_dx2 / (float)abs(dy2); 
-            if (dy2) t_dby_step = t_dy2 / (float)abs(dy2);
-            if (dy2) t_dbz_step = t_dz2 / (float)abs(dy2);
 
             du1_step = 0, dv1_step = 0;
             if (dy1) du1_step = du1 / (float)abs(dy1);
@@ -336,15 +308,24 @@ class W3DGraphics {
                     float tex_ev = v1 + (float)(i - y1) * dv2_step;
                     float tex_ew = w1 + (float)(i - y1) * dw2_step;
 
-                    float t_ax = t_x2 + (float)(i - y2) * t_dax_step;
-                    float t_bx = t_x1 + (float)(i - y1) * t_dbx_step;
+                    // Starting original x and y 
+                    float relativeY = 0; 
+                    float relative_starting_x = 0;
+                    float relative_ending_x = 0;
+                    float relative_starting_w = 0, relative_ending_w = 0; 
 
-                    float t_ay = t_y2 + (float)(i - y2) * t_day_step;
-                    float t_by = t_y1 + (float)(i - y1) * t_dby_step;
 
-                    float t_az = t_z2 + (float)(i - y2) * t_daz_step;
-                    float t_bz = t_z1 + (float)(i - y1) * t_dbz_step;
+                    if (y3 - y1) relativeY = (float)(i - y1) / (y3 - y1); 
+                    if (x3 - x2) relative_starting_x = (float)(ax - x2) / (x3 - x2); 
+                    if (x3 - x1) relative_ending_x = (float)(bx - x1) / (x3 - x1); // Remained the same from the top 
+                    if (w3 - w2) relative_starting_w = (float)(tex_sw - w2)/(w3 - w2);
+                    if (w3 - w1) relative_ending_w = (float)(tex_ew - w1) / (w3 - w1);
 
+                    float t_y = t_y1 + (relativeY * (t_y3 - t_y1));
+                    float t_ax = t_x2 + (relative_starting_x * (t_x3 - t_x2));
+                    float t_bx = t_x1 + (relative_ending_x * (t_x3 - t_x1));
+                    float t_az = t_z2 + (relative_starting_w * (t_z3 - t_z2));
+                    float t_bz = t_z1 + (relative_ending_w * (t_z3 - t_z1));
 
                     if (ax > bx)
                     {
@@ -353,10 +334,9 @@ class W3DGraphics {
                         swap(tex_sv, tex_ev);
                         swap(tex_sw, tex_ew);
 
-                        // Swap the original co-ordinates
+                         // Swap the original co-ordinates
                         swap(t_ax,t_bx);
                         swap(t_az,t_bz);
-                        swap(t_ay,t_by);
 
                     }
 
@@ -374,11 +354,10 @@ class W3DGraphics {
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
 
-                        float tx = (1.0f - t) * t_ax + t * t_bx;
-                        float tz = (1.0f - t) * t_az + t * t_bz;
-                        float ty = (1.0f - t) * t_ay + t * t_by;
-
-                        Vect3d pointInWorldSpace = {tx,ty,tz,1};
+                        // original x, y and z and put it into a point in world space  
+                        float ref_x =  (1.0f - t) * t_ax + t * t_bx;
+                        float ref_z =  (1.0f - t) * t_az + t * t_bz;
+                        Vect3d pointInWorldSpace = {ref_x,t_y,ref_z,1};
 
 
                         RGB pixel = tri.texture->getPixelAt((tex_v/tex_w) * (tri.texture->getHeight() - 1),(tex_u/tex_w) * (tri.texture->getWidth() - 1));
@@ -1066,7 +1045,7 @@ int main(int argc, char **argv)
     basement.LoadFromObjectFile("./assets/objs/basement_entry/basement_entry.obj",readPPM("./assets/objs/basement_entry/Image_9.ppm"));
     basement.rotateZ(180);
     basement.translate({0,0,5});
-    graphicsEngine.addToScene(basement);
+    //graphicsEngine.addToScene(basement);
     
 
     // Pathwalk 
