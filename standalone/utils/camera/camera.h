@@ -101,8 +101,6 @@ void W3Camera::rotateY(float angle){
     // Rotation mat
     Matrix4x4 rot = getMatrixRotationY(angle);
 
-    // Rotation vector 
-    Vect3d rotY = {rot.m[1][0],rot.m[1][1],rot.m[1][2]};
     // translation
     Vect3d originalTranslation = this->getTranslation();
     // Rotate 
