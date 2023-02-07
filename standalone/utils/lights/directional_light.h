@@ -319,7 +319,7 @@ bool W3DirectionalLight::isPointVisible(Vect3d &point){
     
     float depthInDlightDepthBuffer = this->primaryDepthBuffer[pos];
     
-    if (areEqual(depthInDlightDepthBuffer,depth,0.002f)){
+    if (areEqual(depthInDlightDepthBuffer,depth,0.0002f)){
         return true;
     }
 

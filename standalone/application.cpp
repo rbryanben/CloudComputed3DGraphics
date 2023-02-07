@@ -228,7 +228,7 @@ class W3DGraphics {
                     float tstep = 1.0f / ((float)(bx - ax));
                     float t = 0.0f;
 
-                    for (int j = ax; j < bx; j++){
+                    for (int j = ax; j <= bx; j++){
                         tex_u = (1.0f - t) * tex_su + t * tex_eu;
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
                         tex_w = (1.0f - t) * tex_sw + t * tex_ew;
@@ -245,10 +245,6 @@ class W3DGraphics {
                         
                         // Dark Pixel 
                         glColor3f(pixel.r * 0.2f,pixel.g * 0.2f,pixel.b * 0.2f);
-
-                        if (i == y2 - 1 && j == bx - 1){
-                            int a =2;
-                        }
 
                         if (this->light.isPointVisible(pointInWorldSpace)){
                             glColor3f(pixel.r,pixel.g,pixel.b);
@@ -301,7 +297,7 @@ class W3DGraphics {
             // Draw the bttom half  
             if (dy1)
             {
-                for (int i = y2; i < y3; i++)
+                for (int i = y2; i <= y3; i++)
                 {
                     // Calculate differentials 
                     int ax = x2 + (float)(i - y2) * dax_step;
@@ -347,7 +343,7 @@ class W3DGraphics {
                     float tstep = 1.0f / ((float)(bx - ax));
                     float t = 0.0f;
 
-                    for (int j = ax; j < bx; j++)
+                    for (int j = ax; j <= bx; j++)
                     {
                         tex_u = (1.0f - t) * tex_su + t * tex_eu;
                         tex_v = (1.0f - t) * tex_sv + t * tex_ev;
@@ -384,9 +380,6 @@ class W3DGraphics {
                 }	
             }		
             glEnd();
-            //drawTriangleLines(tri);
-
-        
         }
         
 
@@ -443,9 +436,6 @@ class W3DGraphics {
 
         // W3Camera
         W3Camera sceneCamera; 
-
-        //illumination - basic 
-        Vect3d lightSource = {0,0,-5};
         
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
@@ -539,10 +529,10 @@ class W3DGraphics {
                 0.1f);
             
             // Configure camera
-            this->sceneCamera = W3Camera({0,0,-5,1});
+            this->sceneCamera = W3Camera({0,0,-4,1});
             /// light
             light = W3DirectionalLight({8000,8000},90.f,1000.f,0.1f);
-            light.translate({0,8,-8,1});
+            light.translate({0,5,-8,1});
         }
         
         // onUserInput
@@ -570,20 +560,6 @@ class W3DGraphics {
                     break;
                 case 'l':
                     this->sceneCamera.moveUp(-0.2);
-                    break;
-                case '[':
-                    this->lightSource.x -= 5 ;
-                    break;
-                case ']':
-                    this->lightSource.x += 5 ;
-                    break;
-                case 'p':
-                    this->lightSource.z += 5 ;
-                    break;
-                case 't':
-                    break;
-                case ';':
-                    this->lightSource.z -= 5 ;
                     break;
 
                 // Dlight keys 
@@ -668,7 +644,7 @@ class W3DGraphics {
 
             //draw triangles - scene is combined from this point 
             for (Triangle tri : combinedMeshesTriangles){
-                Triangle original = tri;
+                Triangle original = tri; // The original triangle
                 Triangle triProjected;
                 Matrix4x4 matRotZ, matRotX;
 
@@ -686,11 +662,7 @@ class W3DGraphics {
 
                 if (VectorDotProduct(vCameraRay,normal) < 0
                     ){
-                    // Light source is placed in the scene space, before the camera
-                    NormalizeVector(lightSource);
-                    float dt = f_max(VectorDotProduct(normal,lightSource),0);
-                    Color color = {f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f),f_max(abs(dt*1),0.2f)};
-                
+                    
                     //
                     // Camera - From here the entire view is inversed to the camera's view 
                     Triangle triViewd; 
@@ -698,14 +670,15 @@ class W3DGraphics {
                     MultiplyMatrixVector(tri.p[1],triViewd.p[1],matViewd);
                     MultiplyMatrixVector(tri.p[2],triViewd.p[2],matViewd);
 
-                    // Copy texture
-                    tri.color = color;
                     triViewd.copyTextureFrom(tri);
 
                     // Clip the triangles against the axis
-                    vector<Triangle> clippedZ = clipTriangleAgainstPlane({0,0,0.1f,1},{0,0,1,1},triViewd); 
+                    TrianglesHolder clippedZ = clipTriangleAgainstPlane({0,0,0.1f,1},{0,0,1,1},triViewd,original); 
 
-                    for (Triangle tri : clippedZ){  
+                    for (int i = 0; i != clippedZ.projected.size(); i++){
+                        Triangle tri = clippedZ.projected[i];
+                        Triangle og = clippedZ.original[i]; 
+
                         //
                         // Project the polygons(Some normalization takes place here)
                         //      At this point we project the 3D co-ordinates on to a 3D scene
@@ -743,7 +716,7 @@ class W3DGraphics {
 
 
                         // Attach original triangle to the projected triangle
-                        triangleReferences.push_back(original);
+                        triangleReferences.push_back(og);
                         // Add to vertex_list 
                         projectedTriangles.push_back(triProjected);
                     }
@@ -756,20 +729,20 @@ class W3DGraphics {
             //
             //vector<Triangle> clippedTrianglesList;
             //// Clip against the top of the screen
-            //vector<Triangle> topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles);
+            TrianglesHolder topClipped = clipTriangleAgainstPlane({0,0.1,0,1},{0,1,0,1},projectedTriangles,triangleReferences);
             ////// Clip against bottom of the screen
-            //vector<Triangle> bottomClipped =  clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped);
+            TrianglesHolder bottomClipped =  clipTriangleAgainstPlane({0,(float)this->window_height - 1,0,1},{0,-1,0},topClipped.projected,topClipped.original);
             //////Clip against
-            //vector<Triangle> leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped);
+            TrianglesHolder leftClipped = clipTriangleAgainstPlane({1,0,0,1},{1,0,0,1},bottomClipped.projected,bottomClipped.original);
             ////// Clip against right of the screen
-            //vector<Triangle> rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped);
+            TrianglesHolder rightClipped = clipTriangleAgainstPlane({(float)this->window_width - 1,0,0,1},{-1,0,0,1},leftClipped.projected,leftClipped.original);
             
             // Clear depth buffer 
             this->clearDepthBuffer();
 
             // Render the triangles
-            for (int i= 0; i != projectedTriangles.size(); i ++){
-                this->texturedTriangle(projectedTriangles[i],triangleReferences[i]);
+            for (int i= 0; i != rightClipped.projected.size(); i ++){
+                this->texturedTriangle(rightClipped.projected[i],rightClipped.original[i]);
             }
             
             
@@ -793,14 +766,14 @@ int main(int argc, char **argv)
     crate2.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
     crate2.scale(5);
     crate2.translate({0,0,10});
-    graphicsEngine.addToScene(crate2);
+    //graphicsEngine.addToScene(crate2);
 
     // Basement Entry 
     Mesh basement = Mesh("basement");
     basement.LoadFromObjectFile("./assets/objs/basement_entry/basement_entry.obj",readPPM("./assets/objs/basement_entry/Image_9.ppm"));
     basement.rotateZ(180);
     basement.translate({0,0,5});
-    graphicsEngine.addToScene(basement);
+    //graphicsEngine.addToScene(basement);
     
 
     // Pathwalk 

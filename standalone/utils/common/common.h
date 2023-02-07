@@ -70,6 +70,17 @@ struct Vect3d{
     }
 };
 
+// Structure to hold 2 lists of projected and original points 
+struct TrianglesHolder {
+    vector<Triangle> original; 
+    vector<Triangle> projected; 
+    TrianglesHolder(){};
+    TrianglesHolder(vector<Triangle> projected, vector<Triangle> original){
+        this->original = original;
+        this->projected = projected;
+    }
+};
+
 // Vect2d
 struct Vect2d{
     float u,v;
@@ -536,20 +547,219 @@ int Triangle_ClipAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri,Tri
     }
 }
 
-vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri);
 
-vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,vector<Triangle> triangles){
-    vector<Triangle> res;
+TrianglesHolder clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri, Triangle &og_in_tri);
+
+TrianglesHolder clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,vector<Triangle> triangles,vector<Triangle> og_triangles){
+    vector<Triangle> res_proj;
+    vector<Triangle> res_og;
+
     //loop through all triangles and clip, then add the result to the final res
-    for (Triangle tri: triangles){
-        vector<Triangle> clipped = clipTriangleAgainstPlane(plane_p,plane_n,tri);
+    for (int i = 0 ; i != triangles.size(); i++){
+        TrianglesHolder clipped = clipTriangleAgainstPlane(plane_p,plane_n,triangles[i],og_triangles[i]);
         // Add triangle to res (Not optimum)
-        for (Triangle tri : clipped){
-            res.push_back(tri);
+        for (int j =0; j != clipped.projected.size(); j++){
+            res_proj.push_back(clipped.projected[j]);
+            res_og.push_back(clipped.original[j]);
         }
     }
 
+    TrianglesHolder res; 
+    res.original = res_og;
+    res.projected = res_proj;
     return res;
+} 
+
+TrianglesHolder clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri, Triangle &og_in_tri){
+    // Result
+    TrianglesHolder res_holder; 
+    // Result vector - a vector of triangle vectors where index 0 will contained clipped of projected triangles and 1 will contain
+    //      clipped of original triangles  
+    vector<Triangle> res_proj;
+    vector<Triangle> res_og;
+
+    // Out tri's 
+    Triangle out_tri1,out_tri2;
+    Triangle og_out_tri1, og_out_tri2; 
+
+    // Totongogara ta coper ma texture 
+    //     og pretty much doesnt care about texture 
+    out_tri1.texture = in_tri.texture;
+    out_tri2.texture = in_tri.texture;
+
+    //Normalize plane normal
+    plane_n = VectorNormalize(plane_n);
+
+    //Returns shortest distance from point to a plane
+    auto dist = [&](Vect3d &p){
+        Vect3d n = VectorNormalize(p);
+        return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - VectorDotProduct(plane_n,plane_p));
+    };
+
+    //Create two temporary storage arrays to classify points either side of the plane
+    //if the distance is positibe, point lies inside the plane
+    vector<Vect3d> inside_points;
+    vector<Vect3d> og_inside_points; 
+    vector<Vect3d> outside_points;
+    vector<Vect3d> og_outside_points;
+    vector<Vect2d> inside_texture;
+    vector<Vect2d> outside_texture;
+
+    // get signed distance from each point in triangle to the plane
+    float d0 = dist(in_tri.p[0]);
+    float d1 = dist(in_tri.p[1]);
+    float d2 = dist(in_tri.p[2]);
+
+    if (d0 >= 0){
+        inside_points.push_back(in_tri.p[0]);
+        og_inside_points.push_back(og_in_tri.p[0]);
+        inside_texture.push_back(in_tri.t[0]);
+    }
+    else {
+        outside_points.push_back(in_tri.p[0]);
+        og_outside_points.push_back(og_in_tri.p[0]);
+        outside_texture.push_back(in_tri.t[0]);
+    }
+    if (d1 >= 0){
+        inside_points.push_back(in_tri.p[1]);
+        og_inside_points.push_back(og_in_tri.p[1]);
+        inside_texture.push_back(in_tri.t[1]);
+    }
+    else {
+        outside_points.push_back(in_tri.p[1]);
+        og_outside_points.push_back(og_in_tri.p[1]);
+        outside_texture.push_back(in_tri.t[1]);
+    } 
+    if (d2 >= 0) {
+        inside_points.push_back(in_tri.p[2]);
+        og_inside_points.push_back(og_in_tri.p[2]);
+        inside_texture.push_back(in_tri.t[2]);
+    }
+    else { 
+        outside_points.push_back(in_tri.p[2]); 
+        og_outside_points.push_back(og_in_tri.p[2]);
+        outside_texture.push_back(in_tri.t[2]);
+    }
+
+    if (inside_points.size() == 0) return res_holder; //dont draw any
+
+    // All points are inside 
+    if (inside_points.size() == 3){ 
+        // Add the triangle to res 0 
+        res_proj.push_back(in_tri);
+        res_og.push_back(og_in_tri);
+        // Add the 2 lists to the final list
+        res_holder.projected = res_proj;
+        res_holder.original = res_og;
+        return res_holder;
+    }
+
+    // 2 points are outside - form one new triangle 
+    if (inside_points.size() == 1 && outside_points.size() == 2){
+        float t1,t2,t3 = 0.f;
+        // color blue 
+        out_tri1.color = {0,0,1};
+
+        //inside point is valid we keep that 
+        out_tri1.p[0] = inside_points[0];
+        og_out_tri1.p[0] = og_inside_points[0];
+
+        //but the two new points are at the locations where the 
+	    //original sides of the triangle (lines) intersect with the plane
+        out_tri1.p[1] = vectorIntersectPlane(plane_p,plane_n,inside_points[0],outside_points[0],t1);
+        out_tri1.p[2] = vectorIntersectPlane(plane_p,plane_n,inside_points[0],outside_points[1],t2);
+
+        // Original points
+        og_out_tri1.p[1].x = og_inside_points[0].x + (t1 * (og_outside_points[0].x - og_inside_points[0].x));
+        og_out_tri1.p[1].y = og_inside_points[0].y + (t1 * (og_outside_points[0].y - og_inside_points[0].y));
+        og_out_tri1.p[1].z = og_inside_points[0].z + (t1 * (og_outside_points[0].z - og_inside_points[0].z));
+        
+        og_out_tri1.p[2].x = og_inside_points[0].x + (t2 * (og_outside_points[1].x - og_inside_points[0].x));
+        og_out_tri1.p[2].y = og_inside_points[0].y + (t2 * (og_outside_points[1].y - og_inside_points[0].y));
+        og_out_tri1.p[2].z = og_inside_points[0].z + (t2 * (og_outside_points[1].z - og_inside_points[0].z));
+
+        // Add texture 
+        out_tri1.t[0] = inside_texture[0];
+        out_tri1.t[1].u = inside_texture[0].u + (t1 * (outside_texture[0].u - inside_texture[0].u));
+        out_tri1.t[1].v = inside_texture[0].v + (t1 * (outside_texture[0].v - inside_texture[0].v));
+        out_tri1.t[1].w = inside_texture[0].w + (t1 * (outside_texture[0].w - inside_texture[0].w));
+        out_tri1.t[2].u = inside_texture[0].u + (t2 * (outside_texture[1].u - inside_texture[0].u));
+        out_tri1.t[2].v = inside_texture[0].v + (t2 * (outside_texture[1].v - inside_texture[0].v));
+        out_tri1.t[2].w = inside_texture[0].w + (t2 * (outside_texture[1].w - inside_texture[0].w));
+        
+        // Create lists
+        res_proj.push_back(out_tri1);
+        res_og.push_back(og_out_tri1);
+        
+        // Add to result holder
+        res_holder.projected = res_proj;
+        res_holder.original = res_og;
+
+        return res_holder;
+    }
+
+    // One outside point - form two new triangles 
+    if (inside_points.size() == 2 && outside_points.size() == 1){
+        float t1,t2,t3;
+
+        //The first triangle consists of the two inside points and a new
+		//point determined by the location where one side of the triangle
+		//intersects with the plane
+        out_tri1.p[0] = inside_points[0];
+        og_out_tri1.p[0] = og_inside_points[0];
+        
+        out_tri1.p[1] = inside_points[1];
+        og_out_tri1.p[1] = og_inside_points[1];
+
+        out_tri1.p[2] = vectorIntersectPlane(plane_p,plane_n,inside_points[1],outside_points[0],t1);
+        og_out_tri1.p[2].x = og_inside_points[1].x + (t1 * (og_outside_points[0].x - og_inside_points[1].x));
+        og_out_tri1.p[2].y = og_inside_points[1].y + (t1 * (og_outside_points[0].y - og_inside_points[1].y));
+        og_out_tri1.p[2].z = og_inside_points[1].z + (t1 * (og_outside_points[0].z - og_inside_points[1].z));
+
+        out_tri1.t[0] = inside_texture[0];
+        out_tri1.t[1] = inside_texture[1];
+        out_tri1.t[2].u = inside_texture[1].u + (t1 * (outside_texture[0].u - inside_texture[1].u));
+        out_tri1.t[2].v = inside_texture[1].v + (t1 * (outside_texture[0].v - inside_texture[1].v));
+        out_tri1.t[2].w = inside_texture[1].w + (t1 * (outside_texture[0].w - inside_texture[1].w));
+
+        //form the other triangle
+        out_tri2.p[0] = inside_points[0];
+        og_out_tri2.p[0] = og_inside_points[0];
+        out_tri2.t[0] = inside_texture[0];
+
+        out_tri2.p[1] = vectorIntersectPlane(plane_p,plane_n,inside_points[1],outside_points[0],t2);
+
+        og_out_tri2.p[1].x = og_inside_points[1].x + (t2 * (og_outside_points[0].x - og_inside_points[1].x));
+        og_out_tri2.p[1].y = og_inside_points[1].y + (t2 * (og_outside_points[0].y - og_inside_points[1].y));
+        og_out_tri2.p[1].z = og_inside_points[1].z + (t2 * (og_outside_points[0].z - og_inside_points[1].z));
+        
+        out_tri2.t[1].u = inside_texture[1].u + (t2 * (outside_texture[0].u - inside_texture[1].u));
+        out_tri2.t[1].v = inside_texture[1].v + (t2 * (outside_texture[0].v - inside_texture[1].v));
+        out_tri2.t[1].w = inside_texture[1].w + (t2 * (outside_texture[0].w - inside_texture[1].w));
+        
+        out_tri2.p[2] = vectorIntersectPlane(plane_p,plane_n,inside_points[0],outside_points[0],t3);
+        
+        og_out_tri2.p[2].x = og_inside_points[0].x + (t3 * (og_outside_points[0].x - og_inside_points[0].x));
+        og_out_tri2.p[2].y = og_inside_points[0].y + (t3 * (og_outside_points[0].y - og_inside_points[0].y));
+        og_out_tri2.p[2].z = og_inside_points[0].z + (t3 * (og_outside_points[0].z - og_inside_points[0].z));
+
+        out_tri2.t[2].u = inside_texture[0].u + (t3 * (outside_texture[0].u - inside_texture[0].u));
+        out_tri2.t[2].v = inside_texture[0].v + (t3 * (outside_texture[0].v - inside_texture[0].v));
+        out_tri2.t[2].w = inside_texture[0].w + (t3 * (outside_texture[0].w - inside_texture[0].w));
+
+        out_tri1.color = {1,0,0};
+        out_tri2.color = {0,1,0};
+
+        res_proj.push_back(out_tri1);
+        res_proj.push_back(out_tri2);
+        res_og.push_back(og_out_tri1);
+        res_og.push_back(og_out_tri2);
+
+        res_holder.projected = res_proj;
+        res_holder.original = res_og;
+        return res_holder;
+    } 
+
 }
 
 vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle &in_tri){
@@ -683,6 +893,7 @@ vector<Triangle> clipTriangleAgainstPlane(Vect3d plane_p,Vect3d plane_n,Triangle
     }
 
 }
+
 
 // Returns normal to a triangle 
 Vect3d getTriangleNormal(Triangle &tri){
