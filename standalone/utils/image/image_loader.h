@@ -1,3 +1,6 @@
+#ifndef image_loader.h
+#define image_loader.h
+
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -97,3 +100,5 @@ Image readPPM(const char *filename){
     ifs.close();
     return image;
 }
+
+#endif

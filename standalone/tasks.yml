@@ -1,0 +1,14 @@
+- Optimisations:
+  - On clipping join the lists instead of adding one by one
+  - The writter method can cache text if it doesn't change in a frame 
+- Tasks:
+  - Semi colon, decimals and dot text rendering 
+  - Show frame rate and configuration on rendering each frame
+  - GPU Research
+  - Migrate primary tasks to the GPU
+  - Multiple light sources
+  - Project light color to object 
+  - Better scene 
+  - Active Ray Tracing:
+    - Subtasks here
+  - Migrate heavy workloads to the GPU

@@ -17,6 +17,7 @@
 #include "utils/common/matrix_operations.h"
 #include "utils/camera/camera.h"
 #include "utils/lights/directional_light.h"
+#include "utils/text/writer.h"
 
 
 // Variables 
@@ -267,7 +268,6 @@ class W3DGraphics {
 
             //  Arguments 
             dy1 = y3 - y2;
-
             dx1 = x3 - x2;
 
             // original points 
@@ -381,20 +381,19 @@ class W3DGraphics {
             }		
             glEnd();
         }
-        
 
         // Render to depth buffer 
         float* dLightDepthBuffer; 
         
         // Draws the texture ppm 
-        void drawTexture(){
+        void drawTexture(Image texture){
             //GL Begin
             glBegin(GL_POINTS);
                 //Draw Texture 
-                for (int r=0; r != this->texture.getHeight(); ++r){
-                    for (int c=0; c != this->texture.getWidth(); ++c){\                        
+                for (int r=0; r != texture.getHeight(); ++r){
+                    for (int c=0; c != texture.getWidth(); ++c){\                        
                         // Get pixel color 
-                        RGB pixelColor = this->texture.getPixelAt(r,c);
+                        RGB pixelColor = texture.getPixelAt(r,c);
                         glColor3f(pixelColor.r,pixelColor.g,pixelColor.b);
                         glVertex2i(c,r);
                     }   
@@ -428,11 +427,12 @@ class W3DGraphics {
         }
         
     public:
-        
-        // Texture Holder 
-        Image texture; 
         // Objects List
         std::map<string,Mesh> meshes;
+
+        // Time
+        std::chrono::steady_clock::time_point timeBegin;
+        long framesRendered = 0;
 
         // W3Camera
         W3Camera sceneCamera; 
@@ -533,6 +533,9 @@ class W3DGraphics {
             /// light
             light = W3DirectionalLight({8000,8000},90.f,1000.f,0.1f);
             light.translate({0,5,-8,1});
+
+            // Start timing
+            timeBegin = std::chrono::steady_clock::now();
         }
         
         // onUserInput
@@ -561,29 +564,6 @@ class W3DGraphics {
                 case 'l':
                     this->sceneCamera.moveUp(-0.2);
                     break;
-
-                // Dlight keys 
-                //y - move foward
-                case 'y':
-                    this->dLight.moveFoward(3);
-                    break;
-                //h - move back
-                case 'h':
-                    this->dLight.moveBack();
-                    break;
-                //g - rotate right
-                case 'g':
-                    this->dLight.rotateY(-0.02);
-                    break;
-                //j - rotate left
-                case 'j':
-                    this->dLight.rotateY(0.02);
-                    break;
-                //k move left 
-                case 'k':
-                    this->dLight.moveLeft(0.5);
-                    break;
-                      
                 default:
                     break;
             }
@@ -596,16 +576,18 @@ class W3DGraphics {
                 this->depthBuffer[i] = 0 ; 
             }
         }
-       
-        // Directional light protoype 
-        W3Camera dLight = W3Camera(0.5f);
 
+        // Light sources
         W3DirectionalLight light;
+
+        // Text Writter Protoype
+        W3Writer writer;
 
         //Called every time the window updates     
         void onWindowUpdate(){
-            
-            
+           
+        
+
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
             vector<Triangle> triangleReferences; 
@@ -723,8 +705,6 @@ class W3DGraphics {
                 }
             }
 
-
-            
             // Triangle clipped against screen edges 
             //
             //vector<Triangle> clippedTrianglesList;
@@ -743,9 +723,27 @@ class W3DGraphics {
             // Render the triangles
             for (int i= 0; i != rightClipped.projected.size(); i ++){
                 this->texturedTriangle(rightClipped.projected[i],rightClipped.original[i]);
-            }
-            
-            
+            }    
+
+            // Update frames 
+            this->framesRendered++; 
+            std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
+            long seconds = std::chrono::duration_cast<std::chrono::seconds>(timeNow - timeBegin).count();
+            float frameRate = 0;
+            if (seconds > 1) frameRate = (float)this->framesRendered / (float)seconds;
+
+            // FPS
+            string fps = "FRAMES PER SECOND " + std::to_string(frameRate);
+            writer.print(20,20,fps,9);   
+            // SERVER
+            writer.print(20,35,"SERVER NA",9); 
+            // SERVER RESPONSE 
+            writer.print(20,50,"RESPONSE NA",9);
+            // POLYGON COUNT
+            string polygons = "POLYGONS " + to_string(combinedMeshesTriangles.size());
+            writer.print(20,65,polygons,9);
+            // RAY TRACING   
+            writer.print(20,80,"RAY TRACING OFF",9);                     
         }
         
 };
@@ -766,14 +764,14 @@ int main(int argc, char **argv)
     crate2.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
     crate2.scale(5);
     crate2.translate({0,0,10});
-    //graphicsEngine.addToScene(crate2);
+    graphicsEngine.addToScene(crate2);
 
     // Basement Entry 
     Mesh basement = Mesh("basement");
     basement.LoadFromObjectFile("./assets/objs/basement_entry/basement_entry.obj",readPPM("./assets/objs/basement_entry/Image_9.ppm"));
     basement.rotateZ(180);
     basement.translate({0,0,5});
-    //graphicsEngine.addToScene(basement);
+    graphicsEngine.addToScene(basement);
     
 
     // Pathwalk 
