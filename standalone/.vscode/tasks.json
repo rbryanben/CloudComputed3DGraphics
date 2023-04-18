@@ -11,6 +11,7 @@
                 "-lglut",
                 "-lGLU",
                 "-lGL",
+                "-lOpenCL",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],
