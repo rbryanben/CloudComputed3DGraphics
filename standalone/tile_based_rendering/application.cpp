@@ -724,7 +724,7 @@ class W3DGraphics {
             this->textureKernel = textureKernel;
 
             // Setup grid details 
-            this->gridDetails = createGridDetails(this->window_width,this->window_height,500);    
+            this->gridDetails = createGridDetails(this->window_width,this->window_height,2500);    
 
             // Create the out frame 
             this->h_outTiles = new cl_Pixel_Texture_Out[this->window_width * this->window_height];
@@ -1100,8 +1100,9 @@ int main(int argc, char **argv)
     Mesh pathwalk = Mesh();
     pathwalk.LoadFromObjectFile("./assets/objs/pathwalk/pathwalk.obj",readPPM("./assets/objs/pathwalk/texture.ppm"));
     pathwalk.rotateZ(180);
+    pathwalk.scale(10);
     pathwalk.translate({0,0,-10});
-    //graphicsEngine.addToScene(pathwalk);
+    graphicsEngine.addToScene(pathwalk);
 
     // Pathwalk 
     Mesh pathwalk2 = Mesh();

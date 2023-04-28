@@ -277,8 +277,6 @@ struct Mesh
                     // Triangle to add to the list
                     Triangle tri = { verts[stoi(tokens[0]) - 1], verts[stoi(tokens[2]) - 1], verts[stoi(tokens[4]) - 1],
 						texs[stoi(tokens[1]) - 1], texs[stoi(tokens[3]) - 1], texs[stoi(tokens[5]) - 1] };
-                    // Set texture reference
-                    tri.texture = &this->texture;
 
 					triangles.push_back(tri);
 
