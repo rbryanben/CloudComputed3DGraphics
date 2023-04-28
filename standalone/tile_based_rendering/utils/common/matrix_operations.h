@@ -20,12 +20,8 @@ float MultiplyMatrixVector(Vect3d &i, Vect3d &o, Matrix4x4 &m){
         o.z /= w; 		
     } 	
 
-   
-
     return w;
 }
-
-
 
 
 // Vector Multiply Matrix & Normalize Z

@@ -54,6 +54,9 @@ class W3DGraphics {
         // Depth buffer 
         float* depthBuffer;
 
+        // Hold the number of triangles in the scene
+        int trianglesInScene = 0;
+
         // Textured Triangle
         void texturedTriangle(Triangle tri,Triangle orignal_triangle){
             // GL_BEGIN
@@ -447,7 +450,7 @@ class W3DGraphics {
 
     public:
         // Maximum triangles rastered by a sub grid
-        int subGridRasterMax = 2000;
+        int subGridRasterMax =  30000;
 
         // Meshes in the scene
         std::map<string,Mesh> meshes;
@@ -462,9 +465,9 @@ class W3DGraphics {
         // OpenCL context and device 
         cl::Context context;
         cl::Device device;
-        
-        // Textures
-        vector<Image*> textures; 
+     
+        // This is a list of all the textures in the scene 
+        vector<Image> textureList;
 
         // Time
         std::chrono::steady_clock::time_point timeBegin;
@@ -492,7 +495,15 @@ class W3DGraphics {
         // Pixel Textures out
         cl_Pixel_Texture_Out* h_pixelTexturesOut;
 
+        // Value determines if buffers have been created.
+        // In the event new buffer sizes have to be assigned set to false 
+        bool buffersCreated;
+
+        // Value determines if the textures have been transfaered to the shader execution device
+        bool texturesTransfared;
+
         // Vertex-Geometry Shader buffers 
+        cl::Buffer buffer_triangles_in;
         cl::Buffer buffer_camera_matrix;
         cl::Buffer buffer_projection_matrix;
         cl::Buffer buffer_window_width;
@@ -502,6 +513,7 @@ class W3DGraphics {
         cl::Buffer buffer_textures;
         cl::Buffer buffer_texture_maps;
         cl::Buffer buffer_frame;
+        cl::Buffer buffer_depth;
 
         // Shared Buffers 
         cl::Buffer buffer_grid_details;
@@ -509,6 +521,9 @@ class W3DGraphics {
         cl::Buffer buffer_triangles_count;
         cl::Buffer buffer_triangles_out;
         cl::Buffer buffer_vertex_shader_to_rasterizer;
+
+        // Frame Buffer
+        cl_Pixel_Texture_Out* h_outTiles;
         
         // Constructor 
         W3DGraphics(int windowWidth, int windowHeight){
@@ -519,6 +534,7 @@ class W3DGraphics {
             window_width = windowHeight; 
             // Depth buffer 
             this->depthBuffer = new float[window_height * window_width];
+
             // Setup OpenCL
             this->setupOpenCL();
         }
@@ -543,21 +559,40 @@ class W3DGraphics {
             glutMainLoop();    
         }
 
-        // Add Mesh to scene and returns a reference to the mesh
-        Mesh* addToScene(Mesh &mesh){
-            this->meshes[mesh.name] = mesh;
-            // Add the texture reference to the textures list
-            this->textures.push_back(&meshes[mesh.name].texture);
-            // Return a pointer to the mesh in the scene 
-            return &meshes[mesh.name];
-        }
-        
         //Entry Window Ready 
         static void _EntryOnWindowReady(){
             //Call instance window ready
             instance->onWindowReady();
         }
 
+        // onWindowReady
+        void onWindowReady(){
+            //Setup projection matrix
+            this->projectionMatrix = Make_Projection(
+                this->window_height/this->window_width,
+                90.0f,
+                1000.f,
+                0.1f);
+            
+            // Configure camera
+            this->sceneCamera = W3Camera({0,0,-4,1});
+
+            // For debug purposes - entry camera location
+            sceneCamera.cameraMatrix = {
+                0.696707547f,0,-0.717356741f,0,
+                0,1,0,0,
+                0.717356741f,0,0.696707547f,0,
+                -1.29124212f,-1.20000005f,-5.25407219f,1
+            };
+
+            // light Source
+            light = W3DirectionalLight({8000,8000},90.f,1000.f,0.1f);
+            light.translate({0,5,-8,1});
+
+            // Start timing for frame rate
+            timeBegin = std::chrono::steady_clock::now();
+        }
+        
         // Entry Window Update
         static void _EntryOnWindowUpdate(){
             // Clear Screen
@@ -598,34 +633,6 @@ class W3DGraphics {
             }
         }
 
-        // onWindowReady
-        void onWindowReady(){
-            //Setup projection matrix
-            this->projectionMatrix = Make_Projection(
-                this->window_height/this->window_width,
-                90.0f,
-                1000.f,
-                0.1f);
-            
-            // Configure camera
-            this->sceneCamera = W3Camera({0,0,-4,1});
-
-            sceneCamera.cameraMatrix = {
-                0.696707547f,0,-0.717356741f,0,
-                0,1,0,0,
-                0.717356741f,0,0.696707547f,0,
-                -1.29124212f,-1.20000005f,-5.25407219f,1
-            };
-
-
-            /// light
-            light = W3DirectionalLight({8000,8000},90.f,1000.f,0.1f);
-            light.translate({0,5,-8,1});
-
-            // Start timing
-            timeBegin = std::chrono::steady_clock::now();
-        }
-        
         // onUserInput
         void onUserInput(unsigned char key,int mouseX,int mouseY){
             switch (key)
@@ -656,6 +663,34 @@ class W3DGraphics {
                     break;
             }
         }
+        
+        // Add Mesh to scene and returns a reference to the mesh
+        Mesh* addToScene(Mesh &mesh){
+            this->meshes[mesh.name] = mesh;
+
+            // Set the texture number for the object in scene
+            // We will need this value to reference the texture in the shader
+            this->meshes[mesh.name].textureNumber = this->textureList.size();
+            
+            // Add the mesh texture to the texturesList
+            // The textures list is going to be used to transfarer textures to the shader execution device
+            this->textureList.push_back(mesh.texture);
+
+            // Increment the triangles in the scene
+            this->trianglesInScene += this->meshes[mesh.name].triangles.size();
+
+            // Return a pointer to the mesh in the scene 
+            return &meshes[mesh.name];
+        }
+        
+        // Returns the length of all textures. Which is the sum of all textures * their resolutions
+        int getLengthOfAllTextures(){
+            int sum = 0;
+            for (auto texture : this->textureList){
+                sum += texture.getHeight() * texture.getWidth();
+            }
+            return sum;
+        }
 
         // Clears the depth buffer 
         void clearDepthBuffer(){
@@ -665,8 +700,7 @@ class W3DGraphics {
             }
         }
 
-        cl::Buffer buffer_triangles_in;
-
+        
         // OpenCL setup 
         void setupOpenCL(){
             // Program
@@ -694,45 +728,108 @@ class W3DGraphics {
 
             // Create the out frame 
             this->h_outTiles = new cl_Pixel_Texture_Out[this->window_width * this->window_height];
-            // Create buffer 
-            this->createOpenCLBuffers();
+            
         }
 
-        cl_Pixel_Texture_Out* h_outTiles;
-
+        // Create buffers for OpenCL 
         void createOpenCLBuffers(){
             // For any errors 
             cl_int err;
 
             // Vertex-Geometry shader buffers 
-            this->buffer_triangles_in = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Triangle)* 22772,NULL,&err);
+            this->buffer_triangles_in = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Triangle)* this->trianglesInScene,NULL,&err);
             this->buffer_camera_matrix = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Matrix4x4),NULL,&err);
             this->buffer_projection_matrix = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(cl_Matrix4x4),NULL,&err);
             this->buffer_triangles_count = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(int),NULL,&err);
 
             // Rasterazation shader buffers 
-            
+            int textureSize = this->getLengthOfAllTextures();
+            this->buffer_textures = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(RGB) * this->getLengthOfAllTextures(),NULL,&err);
+            this->buffer_texture_maps = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(cl_TextureDetail) * this->textureList.size(),NULL,&err);
+            this->buffer_depth = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(float) * this->window_width * this->window_height,NULL,&err);
 
             // Shared Buffers
             this->buffer_window_width = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(int),NULL,&err);
             this->buffer_window_height = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(int),NULL,&err);
             this->buffer_grid_details = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(cl_GridDetails),NULL,&err);
             this->buffer_sub_grid_raster_max = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(int),NULL,&err);
-            this->buffer_triangles_out = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Triangle) * 31 * 22772,NULL,&err);
+            this->buffer_triangles_out = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Triangle) * 31 * this->trianglesInScene,NULL,&err);
             this->buffer_vertex_shader_to_rasterizer = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(int) * this->gridDetails.cols * this->gridDetails.rows * this->subGridRasterMax,NULL,&err);
             
             // Out Buffers 
             this->buffer_frame = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Pixel_Texture_Out) * this->window_width*this->window_height,NULL,&err);
         }
 
+        // Return the number of pixels required to store all textures
+        int getTexturesLength(){
+            int sum = 0 ;
+            for (auto texture: this->textureList){
+                sum += texture.getHeight() * texture.getWidth();
+            }
+            return sum;
+        }
+
+        // Transfarer textures to the GPU
         void transfarerTextures(){
+            // texture offset
+            int offset = 0;
+
+            // cl_Details array 
+            cl_TextureDetail textureDetails[this->textureList.size()]; 
+
+            // Create a texture array 
+            int textureLength = getTexturesLength();
+            RGB* tex = new RGB[textureLength];
+            
+            //iterate textures
+            for (int i = 0; i != this->textureList.size(); i++){
+                //texture
+                Image* texture = &this->textureList[i];
+                
+                // Add texture details to the array 
+                textureDetails[i] = {texture->getWidth(), texture->getHeight(),offset};
+
+                // resolution 
+                int resolution = texture->getHeight() * texture->getWidth();
+
+                // Write the textures to the buffer
+                //this->clqueue.enqueueWriteBuffer(this->buffer_textures,CL_TRUE,offset,sizeof(RGB) * resolution,texture->matrix);
+
+                // Copy textures to the array 
+                for (int i=0; i != resolution; i++){
+                    tex[offset + i] = texture->matrix[i];
+                }
+
+                // Finish task 
+                this->clqueue.finish();
+
+                // Increment the offset
+                offset += resolution;
+            }
+
+            // Write textures
+            this->clqueue.enqueueWriteBuffer(this->buffer_textures,CL_TRUE,0,sizeof(RGB) * textureLength,tex);
+
+            // Write details to the buffer 
+            this->clqueue.enqueueWriteBuffer(this->buffer_texture_maps,CL_TRUE,0,sizeof(cl_TextureDetail) * this->textureList.size(),&textureDetails);
 
         }
 
-        
-
         //Called every time the window updates     
         void onWindowUpdate(){
+       
+            // Create OpenCL buffers
+            if (!this->buffersCreated){
+                this->createOpenCLBuffers();
+                this->buffersCreated = true;
+            }
+
+            // Transfarer textures
+            if (!this->texturesTransfared){
+                this->transfarerTextures();
+                this->texturesTransfared = true;
+            }
+
             // Final projected colors and triangles 
             vector<Triangle> projectedTriangles;
             vector<Triangle> triangleReferences; 
@@ -746,14 +843,16 @@ class W3DGraphics {
         
             // Combine meshes 
             if (this->changesToScene){
+
                 // Clear the array first 
                 this->combinedMeshesTriangles.clear();
-                // For assigning texture number to triangles
-                int textureCount = 0;  
+    
                 // Iterate meshes and combine into one vector  
                 for (auto i= this->meshes.begin(); i != this->meshes.end(); ++i){
+
                     // Mesh in iteration
                     Mesh mesh = i->second;
+
                     // Copy vertex data to the combined vector 
                     for (Triangle tri: mesh.triangles){
                         Triangle triTransformed;;
@@ -765,13 +864,17 @@ class W3DGraphics {
                         
                         //Copy texture
                         triTransformed.copyTextureFrom(tri);
-                        triTransformed.textureNumber = textureCount;
+
+                        // Set texture number
+                        triTransformed.textureNumber = mesh.textureNumber;
+
                         // Add triangle to the combined mesh triangles 
                         this->combinedMeshesTriangles.push_back(triTransformed); 
                     }
-                    // Increment texture number 
-                    textureCount++;
+
                 }
+
+                // Set scene as combined 
                 this->changesToScene = false;
             }
             
@@ -838,9 +941,6 @@ class W3DGraphics {
             h_projectionMatrix.m[3][2] = this->projectionMatrix.m[3][2];
             h_projectionMatrix.m[3][3] = this->projectionMatrix.m[3][3];
         
-            // Out Buffers 
-            cl::Buffer buffer_frame(this->context,CL_MEM_READ_WRITE,sizeof(cl_Pixel_Texture_Out) * this->window_width*this->window_height);
-
             // Write buffers
             this->clqueue.enqueueWriteBuffer(this->buffer_triangles_in, CL_TRUE, 0, sizeof(cl_Triangle) * combinedMeshesTriangleCount, &h_combinedMeshesTriangleArray);
             this->clqueue.enqueueWriteBuffer(this->buffer_camera_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_CameraMatrix);
@@ -859,6 +959,15 @@ class W3DGraphics {
             cl_int err;
             clEnqueueFillBuffer(this->clqueue(), buffer_vertex_shader_to_rasterizer(), &pattern, sizeof(pattern), 0, sizeof(int) * this->gridDetails.cols * this->gridDetails.rows * this->subGridRasterMax, 0, NULL, NULL);
 
+            // Reset frame buffer;
+            cl_Pixel_Texture_Out blank_pixel = {0.0f, 0.0f, 0, 0.0f};
+            clEnqueueFillBuffer(this->clqueue(),this->buffer_frame(), &blank_pixel, sizeof(cl_Pixel_Texture_Out), 0, sizeof(cl_Pixel_Texture_Out) * this->window_width * this->window_height, 0, NULL, NULL);
+            
+
+            // Reset depth buffer 
+            float zero_f = 0.f;
+            clEnqueueFillBuffer(this->clqueue(),this->buffer_depth(),&zero_f,sizeof(float),0,sizeof(float) * this->window_width * this->window_height,0,NULL,NULL);
+
             // Vertex Shader - Set arguments
             this->renderKernel.setArg(0,this->buffer_triangles_in);
             this->renderKernel.setArg(1,this->buffer_camera_matrix);
@@ -876,12 +985,19 @@ class W3DGraphics {
             this->clqueue.enqueueNDRangeKernel(renderKernel,cl::NullRange,cl::NDRange(combinedMeshesTriangleCount));
             this->clqueue.finish();
 
+            cl::Buffer buffer_image;
+            buffer_image = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(RGB) * this->window_width * this->window_height,NULL,NULL);
+
             // Set the Rasterizer Shader Values
-            this->textureKernel.setArg(0,buffer_vertex_shader_to_rasterizer);
-            this->textureKernel.setArg(1,buffer_sub_grid_raster_max);
-            this->textureKernel.setArg(2,buffer_triangles_out);
-            this->textureKernel.setArg(3,buffer_grid_details);
-            this->textureKernel.setArg(4,buffer_frame);
+            this->textureKernel.setArg(0,this->buffer_vertex_shader_to_rasterizer);
+            this->textureKernel.setArg(1,this->buffer_sub_grid_raster_max);
+            this->textureKernel.setArg(2,this->buffer_triangles_out);
+            this->textureKernel.setArg(3,this->buffer_grid_details);
+            this->textureKernel.setArg(4,this->buffer_frame);
+            this->textureKernel.setArg(5,this->buffer_textures);
+            this->textureKernel.setArg(6,this->buffer_texture_maps);
+            this->textureKernel.setArg(7,this->buffer_depth);
+            this->textureKernel.setArg(8,buffer_image);
 
             // Execute Rasterizer Shader 
             this->clqueue.enqueueNDRangeKernel(this->textureKernel,0,this->gridDetails.rows * this->gridDetails.cols,1);
@@ -889,32 +1005,29 @@ class W3DGraphics {
         
 
             // Read Out Tiles 
+            RGB* im = new RGB[800*800];
             this->clqueue.enqueueReadBuffer(buffer_frame,CL_TRUE,0,sizeof(cl_Pixel_Texture_Out) * this->window_width * this->window_height,this->h_outTiles);
-            
-            //// Draw image
+            this->clqueue.enqueueReadBuffer(buffer_image,CL_TRUE,0,sizeof(RGB)*this->window_width * this->window_height,im);
+
             glBegin(GL_POINTS);
-                glColor3f(1,0,0);
                 // Iterate the output buffer 
                 for (int pos = 0 ; pos != this->window_width * this->window_height; pos++){
-
-                    if (this->h_outTiles[pos].depth != 0){
-                        int y = pos / this->window_width;
-                        int x = pos - (y * this->window_width);
-                        
-                        // Pixel to draw 
-                        cl_Pixel_Texture_Out pix =  this->h_outTiles[pos];
-
-                        ///
-                        /// Working here
-                        int textureHeight = this->textures[h_outTiles[pos].textureNumber]->getHeight() - 1;
-                        int textureWidth = this->textures[h_outTiles[pos].textureNumber]->getWidth() - 1;
-
-                        RGB pixel = this->textures[pix.textureNumber]->getPixelAt(pix.textureV * textureHeight,pix.textureU * textureWidth);
-                        glColor3f(pixel.r,pixel.g,pixel.b);
-                        glVertex2i(x,y);
+                    int y = pos / this->window_width;
+                    int x = pos - (y * this->window_width);
+                    
+                    RGB pixel = im[pos];
+                    
+                    if (!pixel.hasData){
+                        continue;
                     }
+
+                    glColor3f(pixel.r,pixel.g,pixel.b);
+                    glVertex2i(x,y);
                 }
             glEnd();
+            
+    
+            std::free(im);
 
             // Draw Grid Lines 
             //for (int col = 0; col <= this->gridDetails.square_width * this->gridDetails.cols; col += this->gridDetails.square_width ){
@@ -951,10 +1064,7 @@ class W3DGraphics {
             if (framesRendered >= 2000){
                 framesRendered = 0 ;
                 timeBegin = std::chrono::steady_clock::now();
-            }
-
-
-                       
+            }            
 
             return;          
         }   

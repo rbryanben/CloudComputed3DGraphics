@@ -20,7 +20,6 @@ typedef struct cl_Vect3d{
 typedef struct RGB
 {
     float r,g,b;
-    bool hasData;
 } RGB;
 
 // Texture Detail
@@ -795,11 +794,10 @@ void texturedTriangle(__private cl_Triangle* tri,__private cl_Triangle* orignal_
                 // Get the frame position 
                 int pixelPosition = i * windowWidth + j;
 
-                int row = (tex_v/tex_w) * textureDetail.height - 1;
-                int col = (tex_u/tex_w) * textureDetail.width - 1;
+                int row = (float)(tex_v/tex_w) * 1023;
+                int col = (float)(tex_u/tex_w) * 1023;
 
-                RGB pixel = textures[(row * textureDetail.width) + col];
-                pixel.hasData = true;
+                RGB pixel = textures[(row * 1024) + col];
           
                 // Check if there is a lock applied 
                 if (tex_w > depth_buffer[pixelPosition]){
@@ -919,11 +917,10 @@ void texturedTriangle(__private cl_Triangle* tri,__private cl_Triangle* orignal_
                 /** Write to image */
                 int pixelPosition = i * windowWidth + j;
                 
-                int row = (tex_v/tex_w) * textureDetail.height - 1;
-                int col = (tex_u/tex_w) * textureDetail.width - 1;
+                int row = (tex_v/tex_w) * 1023;
+                int col = (tex_u/tex_w) * 1023;
 
-                RGB pixel = textures[(row * textureDetail.width) + col];
-                pixel.hasData = true;
+                RGB pixel = textures[(row * 1024) + col];
           
                 // Check if there is a lock applied 
                 if (tex_w > depth_buffer[pixelPosition]){
@@ -1001,7 +998,18 @@ void cl_TextureDetailPrint(cl_TextureDetail detail){
 __kernel void texture(__global int* vertex_shader_to_rasterizer,__global int* sub_grid_raster_max,__global cl_Triangle* triangles,__global cl_GridDetails* grid_details,
     __global cl_Pixel_Texture_Out* out_tiles,__global RGB* textures,__global cl_TextureDetail* texture_details,__global float* depth_buffer,__global RGB* buffer_image){
     
-    
+    //if (get_global_id(0) == 0){
+    //    for (int row=0; row != 800; row++){
+    //        for (int col=0; col != 800; col++){
+    //            if (row < 800 && col < 800){
+    //                int pos = (row * 800) + col;
+    //                buffer_image[pos] = textures[(row * 1024) + col];
+    //            }
+    //        }
+    //    }
+    //}
+
+
     // Max Sub Grid 
     private int subGridRasterMax = *sub_grid_raster_max; 
 

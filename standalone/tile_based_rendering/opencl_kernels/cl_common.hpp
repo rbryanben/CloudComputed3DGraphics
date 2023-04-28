@@ -14,12 +14,6 @@ typedef struct cl_Vect3d{
     float x,y,z,w;
 } cl_Vect3d;
 
-// RGB 
-typedef struct cl_RGB
-{
-    float r,g,b;
-} cl_RGB;
-
 
 // Triangle 
 typedef struct cl_Triangle
@@ -30,6 +24,13 @@ typedef struct cl_Triangle
     int texture;
     bool hasData;
 } cl_Triangle;
+
+// Texture Detail
+typedef struct cl_TextureDetail{
+    int width;
+    int height;
+    int start_index;
+}cl_TextureDetail;
 
 
 // Matrix4x4 

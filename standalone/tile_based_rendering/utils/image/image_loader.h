@@ -11,6 +11,7 @@
 struct RGB
 {
     float r=0,g=0,b=0;
+    bool hasData;
 };
 
 
@@ -40,7 +41,7 @@ struct Image{
     }
 
     void newPixel(float r,float g, float b){
-        matrix[pointer] = {r,g,b};
+        matrix[pointer] = {r,g,b,false};
         pointer++;
     }
 

@@ -191,8 +191,12 @@ struct Mesh
     vector<Triangle> triangles;
     // Mesh Texture
     Image texture;
+
     // Mesh Geometric Matrix
     Matrix4x4 geometryMatrix;
+
+    // Texture Number
+    int textureNumber;
 
     // Name 
     string name;
@@ -276,7 +280,6 @@ struct Mesh
                     // Set texture reference
                     tri.texture = &this->texture;
 
-                    //tri.parent = this;
 					triangles.push_back(tri);
 
 				}
