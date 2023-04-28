@@ -15,9 +15,7 @@ Its being done all from scratch, and its using OpenCL. And I have never done thi
 - Fluid Simulations
 - Particle Physics
 
-# Current Preview 
-
-https://user-images.githubusercontent.com/63599157/211518203-83cb5807-5bbb-4fe5-b136-66c8d1717201.mp4
+# Preview
 
 https://user-images.githubusercontent.com/63599157/212129844-3aba3da4-9298-440b-b2b6-61bbb504264f.mp4
 
