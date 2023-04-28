@@ -21,7 +21,5 @@ https://user-images.githubusercontent.com/63599157/212129844-3aba3da4-9298-440b-
 
 # The Concept
 
-https://user-images.githubusercontent.com/63599157/191249060-8663a7a2-0b9f-4a42-95d7-c4a90b734f1e.mp4
-
 https://user-images.githubusercontent.com/63599157/191249780-28ea9e1e-a6c1-4da4-9178-6649706ab364.mp4
 
