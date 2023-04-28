@@ -1079,21 +1079,21 @@ int main(int argc, char **argv)
     // Meshs 
     Mesh crate = Mesh("crate");
     crate.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
-    //graphicsEngine.addToScene(crate);
+    graphicsEngine.addToScene(crate);
 
 
     Mesh crate2 = Mesh("crate2");
     crate2.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
     crate2.scale(5);
     crate2.translate({0,0,10});
-    //graphicsEngine.addToScene(crate2);
+    graphicsEngine.addToScene(crate2);
 
     // Basement Entry 
     Mesh basement = Mesh("basement");
     basement.LoadFromObjectFile("./assets/objs/barn/barn.obj",readPPM("./assets/objs/barn/texture.ppm"));
     basement.rotateZ(180);
     basement.translate({0,0,5});
-    //graphicsEngine.addToScene(basement);
+    graphicsEngine.addToScene(basement);
     
 
     // Pathwalk 
@@ -1101,7 +1101,7 @@ int main(int argc, char **argv)
     pathwalk.LoadFromObjectFile("./assets/objs/pathwalk/pathwalk.obj",readPPM("./assets/objs/pathwalk/texture.ppm"));
     pathwalk.rotateZ(180);
     pathwalk.translate({0,0,-10});
-    graphicsEngine.addToScene(pathwalk);
+    //graphicsEngine.addToScene(pathwalk);
 
     // Pathwalk 
     Mesh pathwalk2 = Mesh();

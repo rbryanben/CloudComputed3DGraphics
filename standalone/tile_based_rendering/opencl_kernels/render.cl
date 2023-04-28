@@ -798,7 +798,7 @@ void texturedTriangle(__private cl_Triangle* tri,__private cl_Triangle* orignal_
                 int row = (tex_v/tex_w) * textureDetail.height - 1;
                 int col = (tex_u/tex_w) * textureDetail.width - 1;
 
-                RGB pixel = textures[(row * textureDetail.width) + col];
+                RGB pixel = textures[textureDetail.start_index + (row * textureDetail.width) + col];
                 pixel.hasData = true;
           
                 // Check if there is a lock applied 
@@ -922,7 +922,7 @@ void texturedTriangle(__private cl_Triangle* tri,__private cl_Triangle* orignal_
                 int row = (tex_v/tex_w) * textureDetail.height - 1;
                 int col = (tex_u/tex_w) * textureDetail.width - 1;
 
-                RGB pixel = textures[(row * textureDetail.width) + col];
+                RGB pixel = textures[textureDetail.start_index + (row * textureDetail.width) + col];
                 pixel.hasData = true;
           
                 // Check if there is a lock applied 
