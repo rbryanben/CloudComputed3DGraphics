@@ -1,5 +1,5 @@
 # Dune Engine
-
+<img src="./logo.png" height="300px">
 The idea behind Dune is to build a three-dimensional rendering engine capable of both client and server side rendering. This will work by moving some
 processes of the 3D rendering pipeline to a remote server, thereby relieving the client of some heavy workload. By doing so, we should allow a client 
 to render three-dimensional scenes that they were not capable of rendering before. 

@@ -1,0 +1,15 @@
+- Optimisations:
+  - Better method to determine the grids a triangle passes through
+  - If the y co-ordinate when texturing is out of the grids y bounds then dont compute anything
+  - If the x co-ordinate is out of the grids bounds then compute anything 
+  - Store the frame buffer as a vector and not a grid. Iterating through the entire grid is costly
+- Tasks:
+  - Migrate primary tasks to the GPU
+  - Multiple light sources
+  - Project light color to object 
+  - Better scene 
+  - Active Ray Tracing:
+    - Subtasks here
+  - Migrate heavy workloads to the GPU
+- Notes:
+  - subGridRasterMax - This is the maximum triangles a single subgrid can raster. It has a direct influence on detail.
