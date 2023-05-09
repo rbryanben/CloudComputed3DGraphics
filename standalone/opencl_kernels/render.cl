@@ -581,7 +581,7 @@ void cl_TriangleSetGridSquares(__global cl_GridDetails* gridDetails,cl_Triangle*
     Texture cl_Triangle
 */
 void texturedTriangle(__private cl_Triangle* tri,__private cl_Triangle* orignal_triangle,int windowWidth,int windowHeight,cl_Vect2d topLeftPoint,__global cl_GridDetails* grid_details
-    ,__global cl_Pixel_Texture_Out* out_pixels,__global RGB* textures,cl_TextureDetail textureDetail,__global float* depth_buffer,__global RGB* buffer_image){
+    ,__global RGB* textures,cl_TextureDetail textureDetail,__global float* depth_buffer,__global RGB* buffer_image){
 
     // Points vertex and texture 
     int x1 = tri->p[0].x;
@@ -998,10 +998,14 @@ void cl_TextureDetailPrint(cl_TextureDetail detail){
 /* 
     Texture Method 
 */
-__kernel void texture(__global int* vertex_shader_to_rasterizer,__global int* sub_grid_raster_max,__global cl_Triangle* triangles,__global cl_GridDetails* grid_details,
-    __global cl_Pixel_Texture_Out* out_tiles,__global RGB* textures,__global cl_TextureDetail* texture_details,__global float* depth_buffer,__global RGB* buffer_image){
+__kernel void texture(__global int* vertex_shader_to_rasterizer,__global int* sub_grid_raster_max,__global cl_Triangle* triangles,__global cl_GridDetails* grid_details
+,__global RGB* textures,__global cl_TextureDetail* texture_details,__global float* depth_buffer,__global RGB* buffer_image,__global int* window_width,__global int* window_height){
     
-    
+    //
+    // Window width and height
+    int windowWidth = *window_width;
+    int windowHeight = *window_height;
+
     // Max Sub Grid 
     private int subGridRasterMax = *sub_grid_raster_max; 
 
@@ -1012,8 +1016,11 @@ __kernel void texture(__global int* vertex_shader_to_rasterizer,__global int* su
     int row = workID / grid_details->rows;
     int col = workID % grid_details->rows;
 
+    int topLeftRow = row * grid_details->square_width;
+    int topLeftCol = col * grid_details->square_width;
+
     // Top left corner of grid 
-    private cl_Vect2d topLeftPoint = {col * grid_details->square_width,row * grid_details->square_width,1};
+    private cl_Vect2d topLeftPoint = {topLeftCol,topLeftRow,1};
 
     // Get the start index of triangles to render.
     // The start index contains the number of triangles that are in the next <sub_grid_raster_max - 1> index's.
@@ -1038,8 +1045,14 @@ __kernel void texture(__global int* vertex_shader_to_rasterizer,__global int* su
         // Make the triangle private 
         private cl_Triangle triangleProjected = triangles[trianglePosInBuffer];
   
-        texturedTriangle(&triangleProjected,&triangleProjected,800,800,topLeftPoint,grid_details,out_tiles,textures,texture_details[triangleProjected.texture],depth_buffer,buffer_image);    
+        texturedTriangle(&triangleProjected,&triangleProjected,800,800,topLeftPoint,grid_details,textures,texture_details[triangleProjected.texture],depth_buffer,buffer_image);    
+
+        // Reset As Done 
+        vertex_shader_to_rasterizer[i] = 0;
     }    
+
+    // Reset vertex shader to rasterizer work pool
+    vertex_shader_to_rasterizer[startIndex] = 0;
 }
 
 /*

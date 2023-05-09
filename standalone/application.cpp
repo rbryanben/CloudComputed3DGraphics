@@ -514,8 +514,8 @@ class W3DGraphics {
         // Rasterization Shader buffer
         cl::Buffer buffer_textures;
         cl::Buffer buffer_texture_maps;
-        cl::Buffer buffer_frame;
         cl::Buffer buffer_depth;
+        cl::Buffer buffer_image;
 
         // Shared Buffers 
         cl::Buffer buffer_grid_details;
@@ -760,7 +760,7 @@ class W3DGraphics {
             this->buffer_textures = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(RGB) * this->getLengthOfAllTextures(),NULL,&err);
             this->buffer_texture_maps = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(cl_TextureDetail) * this->textureList.size(),NULL,&err);
             this->buffer_depth = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(float) * this->window_width * this->window_height,NULL,&err);
-
+            this->buffer_image = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(RGB) * this->window_width * this->window_height,NULL,NULL);
             // Shared Buffers
             this->buffer_window_width = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(int),NULL,&err);
             this->buffer_window_height = clCreateBuffer(this->context(),CL_MEM_READ_ONLY,sizeof(int),NULL,&err);
@@ -769,9 +769,6 @@ class W3DGraphics {
             this->buffer_triangles_out = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Triangle) * 31 * this->trianglesInScene,NULL,&err);
             this->buffer_vertex_shader_to_rasterizer = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(int) * this->gridDetails.cols * this->gridDetails.rows * this->subGridRasterMax,NULL,&err);
             
-            // Out Buffers 
-            this->buffer_frame = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Pixel_Texture_Out) * this->window_width*this->window_height,NULL,&err);
-
             cl::finish();
         }
 
@@ -902,15 +899,6 @@ class W3DGraphics {
             int zero = 0;
             err_ = this->clqueue.enqueueWriteBuffer(this->buffer_triangles_count,CL_TRUE,0,sizeof(int),&zero);
 
-            // Reset vertex_shader_to_rasterizer buffer
-            cl_int pattern = 0;
-            cl_int err;
-            clEnqueueFillBuffer(this->clqueue(), buffer_vertex_shader_to_rasterizer(), &pattern, sizeof(pattern), 0, sizeof(int) * this->gridDetails.cols * this->gridDetails.rows * this->subGridRasterMax, 0, NULL, NULL);
-
-            // Reset frame buffer;
-            cl_Pixel_Texture_Out blank_pixel = {0.0f, 0.0f, 0, 0.0f};
-            clEnqueueFillBuffer(this->clqueue(),this->buffer_frame(), &blank_pixel, sizeof(cl_Pixel_Texture_Out), 0, sizeof(cl_Pixel_Texture_Out) * this->window_width * this->window_height, 0, NULL, NULL);
-        
             // Reset depth buffer 
             float zero_f = 0.f;
             clEnqueueFillBuffer(this->clqueue(),this->buffer_depth(),&zero_f,sizeof(float),0,sizeof(float) * this->window_width * this->window_height,0,NULL,NULL);
@@ -932,20 +920,22 @@ class W3DGraphics {
             this->clqueue.enqueueNDRangeKernel(renderKernel,cl::NullRange,sceneTrianglesCount);
             this->clqueue.finish();
 
-            // Image Buffer
-            cl::Buffer buffer_image;
-            buffer_image = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(RGB) * this->window_width * this->window_height,NULL,NULL);
-
+            // Reset the frame_buffer 
+            RGB blackPixel =  {0.f,0.f,0.f,false};
+            this->clqueue.enqueueFillBuffer(this->buffer_image,blackPixel,0,sizeof(RGB) * this->window_width * this->window_height);
+            
             // Set the Rasterizer Shader Values
             this->textureKernel.setArg(0,this->buffer_vertex_shader_to_rasterizer);
             this->textureKernel.setArg(1,this->buffer_sub_grid_raster_max);
             this->textureKernel.setArg(2,this->buffer_triangles_out);
             this->textureKernel.setArg(3,this->buffer_grid_details);
-            this->textureKernel.setArg(4,this->buffer_frame);
-            this->textureKernel.setArg(5,this->buffer_textures);
-            this->textureKernel.setArg(6,this->buffer_texture_maps);
-            this->textureKernel.setArg(7,this->buffer_depth);
-            this->textureKernel.setArg(8,buffer_image);
+            this->textureKernel.setArg(4,this->buffer_textures);
+            this->textureKernel.setArg(5,this->buffer_texture_maps);
+            this->textureKernel.setArg(6,this->buffer_depth);
+            this->textureKernel.setArg(7,this->buffer_image);
+            this->textureKernel.setArg(8,this->buffer_window_width);
+            this->textureKernel.setArg(9,this->buffer_window_height);
+
 
             // Execute Rasterizer Shader 
             this->clqueue.enqueueNDRangeKernel(this->textureKernel,0,this->gridDetails.rows * this->gridDetails.cols,1);
@@ -953,8 +943,6 @@ class W3DGraphics {
         
 
             // Read Out Tiles 
-            
-            this->clqueue.enqueueReadBuffer(buffer_frame,CL_TRUE,0,sizeof(cl_Pixel_Texture_Out) * this->window_width * this->window_height,this->h_outTiles);
             this->clqueue.enqueueReadBuffer(buffer_image,CL_TRUE,0,sizeof(RGB)*this->window_width * this->window_height,this->image);
 
             glBegin(GL_POINTS);
@@ -1107,7 +1095,7 @@ int main(int argc, char **argv)
     // Meshs 
     Mesh crate = Mesh("crate");
     crate.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
-    //graphicsEngine.addToScene(crate);
+    graphicsEngine.addToScene(crate);
 
 
     Mesh crate2 = Mesh("crate2");
