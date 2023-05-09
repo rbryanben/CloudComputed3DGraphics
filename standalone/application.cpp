@@ -487,7 +487,7 @@ class W3DGraphics {
         bool changesToScene = true;
 
         // Combined objects list 
-        vector<cl_Triangle> combinedMeshesTriangles;
+        cl_Triangle* combinedMeshesTriangles;
 
         // Program
         cl::Program gpuProgram;
@@ -682,7 +682,22 @@ class W3DGraphics {
             // Return a pointer to the mesh in the scene 
             return &meshes[mesh.name];
         }
-        
+
+
+        // Draw Grid Lines Method 
+        void drawGridLines(){
+            // Draw Grid Lines 
+            for (int col = 0; col <= this->gridDetails.square_width * this->gridDetails.cols; col += this->gridDetails.square_width ){
+                glBegin(GL_LINES);
+                    glColor3f(1,1,0);
+                    glVertex2i(col,0);
+                    glVertex2i(col,this->gridDetails.square_width * this->gridDetails.rows);
+                    glVertex2i(0,col);
+                    glVertex2i(this->gridDetails.square_width * this->gridDetails.cols,col);
+                glEnd();
+            } 
+        }
+
         // Returns the length of all textures. Which is the sum of all textures * their resolutions
         int getLengthOfAllTextures(){
             int sum = 0;
@@ -699,7 +714,6 @@ class W3DGraphics {
                 this->depthBuffer[i] = 0 ; 
             }
         }
-
         
         // OpenCL setup 
         void setupOpenCL(){
@@ -711,6 +725,7 @@ class W3DGraphics {
             this->device =  this->context.getInfo<CL_CONTEXT_DEVICES>().front();
             cl::CommandQueue queue(this->context,this->device);
             this->clqueue = queue;
+
 
             // Set the GPU core count
             this->gpuCoreCount = this->device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
@@ -758,6 +773,8 @@ class W3DGraphics {
             
             // Out Buffers 
             this->buffer_frame = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(cl_Pixel_Texture_Out) * this->window_width*this->window_height,NULL,&err);
+
+            cl::finish();
         }
 
         // Return the number of pixels required to store all textures
@@ -768,6 +785,9 @@ class W3DGraphics {
             }
             return sum;
         }
+
+        // Get the number of triangles in the scene 
+        int getNumberOfTriangleInTheScene();
 
         // Transfarer textures to the GPU
         void transfarerTextures(){
@@ -792,9 +812,6 @@ class W3DGraphics {
                 // resolution 
                 int resolution = texture->getHeight() * texture->getWidth();
 
-                // Write the textures to the buffer
-                //this->clqueue.enqueueWriteBuffer(this->buffer_textures,CL_TRUE,offset,sizeof(RGB) * resolution,texture->matrix);
-
                 // Copy textures to the array 
                 for (int i=0; i != resolution; i++){
                     tex[offset + i] = texture->matrix[i];
@@ -813,69 +830,36 @@ class W3DGraphics {
             // Write details to the buffer 
             this->clqueue.enqueueWriteBuffer(this->buffer_texture_maps,CL_TRUE,0,sizeof(cl_TextureDetail) * this->textureList.size(),&textureDetails);
 
+            cl::finish();
+
         }
+
+        // Combine Meshes Into One Scene 
+        bool combineMeshesIntoScene();
 
         //Called every time the window updates     
         void onWindowUpdate(){
        
-            // Create OpenCL buffers
+            // Create OpenCL buffers - Call only when there is a change to the scene 
             if (!this->buffersCreated){
                 this->createOpenCLBuffers();
                 this->buffersCreated = true;
             }
 
-            // Transfarer textures
+            // Transfarer textures - Call only when there is a change to the scene
             if (!this->texturesTransfared){
                 this->transfarerTextures();
                 this->texturesTransfared = true;
             }
 
-        
             // Camera Matrix - this is here so that we do not retrieve it on every render triangle
             Matrix4x4 matViewd = this->sceneCamera.get4x4MatrixInverse(); 
-            
-            // Combine meshes 
-            if (this->changesToScene){
 
-                // Clear the array first 
-                this->combinedMeshesTriangles.clear();
-    
-                // Iterate meshes and combine into one vector  
-                for (auto i= this->meshes.begin(); i != this->meshes.end(); ++i){
+            // Number of triangles in the scene
+            int sceneTrianglesCount = this->getNumberOfTriangleInTheScene();
 
-                    // Mesh in iteration
-                    Mesh mesh = i->second;
-
-                    // Copy vertex data to the combined vector 
-                    for (cl_Triangle tri: mesh.triangles){
-                        cl_Triangle triTransformed;;
-                        
-                        // Apply geometric transformation to each triangle
-                        triTransformed.p[0] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[0]);
-                        triTransformed.p[1] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[1]);
-                        triTransformed.p[2] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[2]);
-                        
-                        //Copy texture
-                        triTransformed.t[0] = tri.t[0];
-                        triTransformed.t[1] = tri.t[1];
-                        triTransformed.t[2] = tri.t[2];
-                        
-                        // Set texture number
-                        triTransformed.texture = mesh.textureNumber;
-
-                        // Add triangle to the combined mesh triangles 
-                        this->combinedMeshesTriangles.push_back(triTransformed); 
-                    }
-
-                }
-
-                // Set scene as combined 
-                this->changesToScene = false;
-            }
-            
-        
-            // Add combined triangles to an array for opencl 
-            size_t combinedMeshesTriangleCount = combinedMeshesTriangles.size();
+            // Combine the scene
+            bool trianglesArrayChanged = this->combineMeshesIntoScene();
 
             // Camera Matrix - copy the current camera matrix data to the cl Matrix 
             cl_Matrix4x4 h_CameraMatrix;
@@ -899,6 +883,7 @@ class W3DGraphics {
             h_CameraMatrix.m[3][2] = this->sceneCamera.cameraMatrix.m[3][2];
             h_CameraMatrix.m[3][3] = this->sceneCamera.cameraMatrix.m[3][3];
 
+            // Copy the projection matrix 
             cl_Matrix4x4 h_projectionMatrix;
             h_projectionMatrix.m[0][0] = this->projectionMatrix.m[0][0];
             h_projectionMatrix.m[0][1] = this->projectionMatrix.m[0][1];
@@ -919,25 +904,26 @@ class W3DGraphics {
             h_projectionMatrix.m[3][1] = this->projectionMatrix.m[3][1];
             h_projectionMatrix.m[3][2] = this->projectionMatrix.m[3][2];
             h_projectionMatrix.m[3][3] = this->projectionMatrix.m[3][3];
-
-            cl_Triangle* r = new cl_Triangle[12];
-
-            for (size_t i=0; i != 12; i++){
-                r[i] = this->combinedMeshesTriangles[i];
-            }
+            
         
             // Write buffers
-            this->clqueue.enqueueWriteBuffer(this->buffer_triangles_in, CL_TRUE, 0, sizeof(cl_Triangle) * combinedMeshesTriangleCount, &r);
-            this->clqueue.enqueueWriteBuffer(this->buffer_camera_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_CameraMatrix);
-            this->clqueue.enqueueWriteBuffer(this->buffer_projection_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_projectionMatrix);
-            this->clqueue.enqueueWriteBuffer(this->buffer_window_width,CL_TRUE,0,sizeof(int),&this->window_width);
-            this->clqueue.enqueueWriteBuffer(this->buffer_window_height,CL_TRUE,0,sizeof(int),&this->window_height);
-            this->clqueue.enqueueWriteBuffer(this->buffer_grid_details,CL_TRUE,0,sizeof(cl_GridDetails),&this->gridDetails);
-            this->clqueue.enqueueWriteBuffer(this->buffer_sub_grid_raster_max,CL_TRUE,0,sizeof(int),&this->subGridRasterMax);
+            cl_int err_ = 0;
+
+            // Write Once 
+            if (trianglesArrayChanged){
+                err_ = this->clqueue.enqueueWriteBuffer(this->buffer_triangles_in,CL_TRUE,0,sizeof(cl_Triangle) * sceneTrianglesCount,this->combinedMeshesTriangles);
+            }
+
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_camera_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_CameraMatrix);
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_projection_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_projectionMatrix);
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_window_width,CL_TRUE,0,sizeof(int),&this->window_width);
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_window_height,CL_TRUE,0,sizeof(int),&this->window_height);
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_grid_details,CL_TRUE,0,sizeof(cl_GridDetails),&this->gridDetails);
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_sub_grid_raster_max,CL_TRUE,0,sizeof(int),&this->subGridRasterMax);
 
             // Reset the triangle count
             int zero = 0;
-            this->clqueue.enqueueWriteBuffer(this->buffer_triangles_count,CL_TRUE,0,sizeof(int),&zero);
+            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_triangles_count,CL_TRUE,0,sizeof(int),&zero);
 
             // Reset vertex_shader_to_rasterizer buffer
             cl_int pattern = 0;
@@ -967,7 +953,7 @@ class W3DGraphics {
     
 
             // Execute Vertex and Geometry Shader 
-            this->clqueue.enqueueNDRangeKernel(renderKernel,cl::NullRange,cl::NDRange(combinedMeshesTriangleCount));
+            this->clqueue.enqueueNDRangeKernel(renderKernel,cl::NullRange,sceneTrianglesCount);
             this->clqueue.finish();
 
             cl::Buffer buffer_image;
@@ -1014,17 +1000,6 @@ class W3DGraphics {
     
             std::free(im);
 
-            // Draw Grid Lines 
-            //for (int col = 0; col <= this->gridDetails.square_width * this->gridDetails.cols; col += this->gridDetails.square_width ){
-            //    glBegin(GL_LINES);
-            //        glColor3f(1,1,0);
-            //        glVertex2i(col,0);
-            //        glVertex2i(col,this->gridDetails.square_width * this->gridDetails.rows);
-            //        glVertex2i(0,col);
-            //        glVertex2i(this->gridDetails.square_width * this->gridDetails.cols,col);
-            //    glEnd();
-            //} 
-
             // Update frames 
             this->framesRendered++; 
 
@@ -1042,7 +1017,7 @@ class W3DGraphics {
             // SERVER RESPONSE 
             writer.print(20,50,"RESPONSE NA",9);
             //// POLYGON COUNT
-            string polygons = "POLYGONS " + to_string(combinedMeshesTriangles.size());
+            string polygons = "POLYGONS " + to_string(sceneTrianglesCount);
             writer.print(20,65,polygons,9);
                   
 
@@ -1055,7 +1030,77 @@ class W3DGraphics {
         }   
 };
 
-// Test With UI
+/// @brief Will return the sum of all triangles in the scene 
+int W3DGraphics::getNumberOfTriangleInTheScene(){
+    int size = 0;  
+    for (auto i= this->meshes.begin(); i != this->meshes.end(); ++i){\
+        // Mesh in iteration
+        Mesh mesh = i->second;
+        size += mesh.triangles.size();
+    }
+    return size;
+}
+
+
+/// @brief This method will take all meshes that are in a scene to create a single array containing all triangles in the scene.
+///        It is controlled by the variable changesToScene. If changesToScene is true the scene is combined
+bool W3DGraphics::combineMeshesIntoScene(){
+    // Combine meshes 
+    if (this->changesToScene){
+
+        // Clear the array first 
+
+        std::free(this->combinedMeshesTriangles);
+        
+        int sceneTriangleCount = this->getNumberOfTriangleInTheScene();
+
+        // Assign the array 
+        this->combinedMeshesTriangles = new cl_Triangle[sceneTriangleCount];
+
+        // Add triangles to the array
+        size_t pointer = 0;
+        for (auto i= this->meshes.begin(); i != this->meshes.end(); ++i){
+
+            // Mesh in iteration
+            Mesh mesh = i->second;
+
+            // For each triangle perform neccessary geometry and add to the array
+            for (cl_Triangle tri: mesh.triangles){
+                cl_Triangle triTransformed;;
+                
+                // Apply geometric transformation to each triangle
+                triTransformed.p[0] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[0]);
+                triTransformed.p[1] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[1]);
+                triTransformed.p[2] = MatrixMultiplyVector(mesh.geometryMatrix,tri.p[2]);
+                
+                //Copy over texture
+                triTransformed.t[0] = tri.t[0];
+                triTransformed.t[1] = tri.t[1];
+                triTransformed.t[2] = tri.t[2];
+                
+                // Set texture number
+                triTransformed.texture = mesh.textureNumber;
+
+                // Add triangle to the combined mesh triangles 
+                combinedMeshesTriangles[pointer++] = triTransformed;
+            }
+
+        }
+
+        // Set scene as combined 
+        this->changesToScene = false;
+
+        return true;
+    }
+
+    return false;
+            
+}
+
+/// @brief Test Application
+/// @param argc 
+/// @param argv 
+/// @return 
 int main(int argc, char **argv)
 {
     // Engine instance
@@ -1064,7 +1109,7 @@ int main(int argc, char **argv)
     // Meshs 
     Mesh crate = Mesh("crate");
     crate.LoadFromObjectFile("./assets/objs/crate/Crate1.obj",readPPM("./assets/objs/crate/crate.ppm"));
-    graphicsEngine.addToScene(crate);
+    //graphicsEngine.addToScene(crate);
 
 
     Mesh crate2 = Mesh("crate2");
@@ -1085,9 +1130,8 @@ int main(int argc, char **argv)
     Mesh pathwalk = Mesh();
     pathwalk.LoadFromObjectFile("./assets/objs/pathwalk/pathwalk.obj",readPPM("./assets/objs/pathwalk/texture.ppm"));
     pathwalk.rotateZ(180);
-    pathwalk.scale(10);
     pathwalk.translate({0,0,-10});
-    //graphicsEngine.addToScene(pathwalk);
+    graphicsEngine.addToScene(pathwalk);
 
     // Pathwalk 
     Mesh pathwalk2 = Mesh();

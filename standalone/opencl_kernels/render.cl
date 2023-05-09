@@ -1042,8 +1042,6 @@ __kernel void texture(__global int* vertex_shader_to_rasterizer,__global int* su
     }    
 }
 
-
-
 /*
     Render method is respnsible for rendering a triangle 
  */
