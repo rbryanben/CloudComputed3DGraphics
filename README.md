@@ -7,7 +7,7 @@ to render three-dimensional scenes that they were not capable of rendering befor
 # Features
 Its being done all from scratch, and its using OpenCL. And I have never done this before. 
 - Dynamic Shadow Mapping 
-- FPS Camera 
+- First Person Shooter Camera 
 - Directional Lights 
 
 # Future Plans 
