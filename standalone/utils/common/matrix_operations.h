@@ -1,8 +1,4 @@
-#ifndef matrix_operations_h
-#include "common.h"
-#include <math.h>
-#define matrix_operations_h
-
+# pragma once
 using namespace std;
 
 /*  Multiply 2 Matrix and Vector */
@@ -108,12 +104,54 @@ Matrix4x4 Matrix_MakeTranslation(float x, float y, float z){
     return res;
 }
 
+/// @brief Returns an empty cl_Matrix4x4 
+/// @return empty matrix 
+cl_Matrix4x4 cl_getEmptyMatrix(){
+    cl_Matrix4x4 res;
+    res.m[0][0] = 0;
+    res.m[0][1] = 0;
+    res.m[0][2] = 0;
+    res.m[0][3] = 0;
+    res.m[1][0] = 0;
+    res.m[1][1] = 0;
+    res.m[1][2] = 0;
+    res.m[1][3] = 0;
+    res.m[2][0] = 0;
+    res.m[2][1] = 0;
+    res.m[2][2] = 0;
+    res.m[2][3] = 0;
+    res.m[3][0] = 0;
+    res.m[3][1] = 0;
+    res.m[3][2] = 0;
+    res.m[3][3] = 0;
+    return res;
+}
+
 // Make Projection
 Matrix4x4 Make_Projection(float aspectRatio,float fieldView,float zfar,float znear){
     float tangentFunction = 1.0f / tanf(fieldView * 0.5f / 180.0f * 3.14159f);
     float zfarFunction = (zfar/(zfar-znear)) - ((zfar*znear)/(zfar-znear));
     
     Matrix4x4 projectionMatrix;
+    projectionMatrix.m[0][0] = aspectRatio * tangentFunction;
+    projectionMatrix.m[1][1] = tangentFunction;
+    projectionMatrix.m[2][2] =  zfar/(zfar-znear);
+    projectionMatrix.m[3][2] = (-zfar*znear)/(zfar-znear);
+    projectionMatrix.m[2][3] = 1.0f;
+    return projectionMatrix;
+}
+
+/// @brief Creates a projection matrix of type cl_Triangle
+/// @param aspectRatio 
+/// @param fieldView 
+/// @param zfar 
+/// @param znear 
+/// @return cl_Matrix4x4 - projection matrix
+cl_Matrix4x4 cl_Make_Projection(float aspectRatio,float fieldView,float zfar,float znear){
+    float tangentFunction = 1.0f / tanf(fieldView * 0.5f / 180.0f * 3.14159f);
+    float zfarFunction = (zfar/(zfar-znear)) - ((zfar*znear)/(zfar-znear));
+    
+    cl_Matrix4x4 projectionMatrix;
     projectionMatrix.m[0][0] = aspectRatio * tangentFunction;
     projectionMatrix.m[1][1] = tangentFunction;
     projectionMatrix.m[2][2] =  zfar/(zfar-znear);
@@ -188,4 +226,3 @@ Matrix4x4 getScalingMatrix(float scale){
     res.m[2][2] = scale;
     return res;
 }
-#endif

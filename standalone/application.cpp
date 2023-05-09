@@ -48,16 +48,16 @@ class W3DGraphics {
         // OpenCl grid details 
         cl_GridDetails gridDetails;
 
-        // Matrice
-        Matrix4x4 projectionMatrix;
-
         // Depth buffer 
         float* depthBuffer;
 
         // Hold the number of triangles in the scene
         int trianglesInScene = 0;
 
-        // Textured Triangle
+        // Output Image
+        RGB* image;
+
+        // Textured Triangleus
         void texturedTriangle(Triangle tri,Triangle orignal_triangle){
             // GL_BEGIN
             glBegin(GL_POINTS);
@@ -498,6 +498,8 @@ class W3DGraphics {
         // Value determines if buffers have been created.
         // In the event new buffer sizes have to be assigned set to false 
         bool buffersCreated;
+        // Value determines if static values have been set 
+        bool staticBuffersWritten = false;
 
         // Value determines if the textures have been transfaered to the shader execution device
         bool texturesTransfared;
@@ -566,14 +568,7 @@ class W3DGraphics {
         }
 
         // onWindowReady
-        void onWindowReady(){
-            //Setup projection matrix
-            this->projectionMatrix = Make_Projection(
-                this->window_height/this->window_width,
-                90.0f,
-                1000.f,
-                0.1f);
-            
+        void onWindowReady(){            
             // Configure camera
             this->sceneCamera = W3Camera({0,0,-4,1});
 
@@ -584,6 +579,9 @@ class W3DGraphics {
                 0.717356741f,0,0.696707547f,0,
                 -1.29124212f,-1.20000005f,-5.25407219f,1
             };
+
+            // Image - to store image from the GPU
+            this->image = new RGB[this->window_width * this->window_height];
 
             // light Source
             light = W3DirectionalLight({8000,8000},90.f,1000.f,0.1f);
@@ -837,6 +835,9 @@ class W3DGraphics {
         // Combine Meshes Into One Scene 
         bool combineMeshesIntoScene();
 
+        // Write OpenCL static buffers
+        void writeOpenCLStaticBuffers();
+
         //Called every time the window updates     
         void onWindowUpdate(){
        
@@ -845,6 +846,9 @@ class W3DGraphics {
                 this->createOpenCLBuffers();
                 this->buffersCreated = true;
             }
+
+            // Write static values to the buffer
+            this->writeOpenCLStaticBuffers();
 
             // Transfarer textures - Call only when there is a change to the scene
             if (!this->texturesTransfared){
@@ -881,46 +885,19 @@ class W3DGraphics {
             h_CameraMatrix.m[3][0] = this->sceneCamera.cameraMatrix.m[3][0];
             h_CameraMatrix.m[3][1] = this->sceneCamera.cameraMatrix.m[3][1];
             h_CameraMatrix.m[3][2] = this->sceneCamera.cameraMatrix.m[3][2];
-            h_CameraMatrix.m[3][3] = this->sceneCamera.cameraMatrix.m[3][3];
-
-            // Copy the projection matrix 
-            cl_Matrix4x4 h_projectionMatrix;
-            h_projectionMatrix.m[0][0] = this->projectionMatrix.m[0][0];
-            h_projectionMatrix.m[0][1] = this->projectionMatrix.m[0][1];
-            h_projectionMatrix.m[0][2] = this->projectionMatrix.m[0][2];
-            h_projectionMatrix.m[0][3] = this->projectionMatrix.m[0][3];
-
-            h_projectionMatrix.m[1][0] = this->projectionMatrix.m[1][0];
-            h_projectionMatrix.m[1][1] = this->projectionMatrix.m[1][1];
-            h_projectionMatrix.m[1][2] = this->projectionMatrix.m[1][2];
-            h_projectionMatrix.m[1][3] = this->projectionMatrix.m[1][3];
-
-            h_projectionMatrix.m[2][0] = this->projectionMatrix.m[2][0];
-            h_projectionMatrix.m[2][1] = this->projectionMatrix.m[2][1];
-            h_projectionMatrix.m[2][2] = this->projectionMatrix.m[2][2];
-            h_projectionMatrix.m[2][3] = this->projectionMatrix.m[2][3];
-            
-            h_projectionMatrix.m[3][0] = this->projectionMatrix.m[3][0];
-            h_projectionMatrix.m[3][1] = this->projectionMatrix.m[3][1];
-            h_projectionMatrix.m[3][2] = this->projectionMatrix.m[3][2];
-            h_projectionMatrix.m[3][3] = this->projectionMatrix.m[3][3];
-            
+            h_CameraMatrix.m[3][3] = this->sceneCamera.cameraMatrix.m[3][3];        
         
             // Write buffers
             cl_int err_ = 0;
 
-            // Write Once 
+            // Write triangles_in once
             if (trianglesArrayChanged){
                 err_ = this->clqueue.enqueueWriteBuffer(this->buffer_triangles_in,CL_TRUE,0,sizeof(cl_Triangle) * sceneTrianglesCount,this->combinedMeshesTriangles);
             }
 
+            // Write the camera  matrix
             err_ = this->clqueue.enqueueWriteBuffer(this->buffer_camera_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_CameraMatrix);
-            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_projection_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&h_projectionMatrix);
-            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_window_width,CL_TRUE,0,sizeof(int),&this->window_width);
-            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_window_height,CL_TRUE,0,sizeof(int),&this->window_height);
-            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_grid_details,CL_TRUE,0,sizeof(cl_GridDetails),&this->gridDetails);
-            err_ = this->clqueue.enqueueWriteBuffer(this->buffer_sub_grid_raster_max,CL_TRUE,0,sizeof(int),&this->subGridRasterMax);
-
+        
             // Reset the triangle count
             int zero = 0;
             err_ = this->clqueue.enqueueWriteBuffer(this->buffer_triangles_count,CL_TRUE,0,sizeof(int),&zero);
@@ -933,13 +910,12 @@ class W3DGraphics {
             // Reset frame buffer;
             cl_Pixel_Texture_Out blank_pixel = {0.0f, 0.0f, 0, 0.0f};
             clEnqueueFillBuffer(this->clqueue(),this->buffer_frame(), &blank_pixel, sizeof(cl_Pixel_Texture_Out), 0, sizeof(cl_Pixel_Texture_Out) * this->window_width * this->window_height, 0, NULL, NULL);
-            
-
+        
             // Reset depth buffer 
             float zero_f = 0.f;
             clEnqueueFillBuffer(this->clqueue(),this->buffer_depth(),&zero_f,sizeof(float),0,sizeof(float) * this->window_width * this->window_height,0,NULL,NULL);
 
-            // Vertex Shader - Set arguments
+            // Vertex-Geometry Shader - Set arguments
             this->renderKernel.setArg(0,this->buffer_triangles_in);
             this->renderKernel.setArg(1,this->buffer_camera_matrix);
             this->renderKernel.setArg(2,this->buffer_projection_matrix);
@@ -952,10 +928,11 @@ class W3DGraphics {
             this->renderKernel.setArg(9,this->buffer_sub_grid_raster_max);
     
 
-            // Execute Vertex and Geometry Shader 
+            // Execute Vertex-Geometry Shader 
             this->clqueue.enqueueNDRangeKernel(renderKernel,cl::NullRange,sceneTrianglesCount);
             this->clqueue.finish();
 
+            // Image Buffer
             cl::Buffer buffer_image;
             buffer_image = clCreateBuffer(this->context(),CL_MEM_READ_WRITE,sizeof(RGB) * this->window_width * this->window_height,NULL,NULL);
 
@@ -976,9 +953,9 @@ class W3DGraphics {
         
 
             // Read Out Tiles 
-            RGB* im = new RGB[800*800];
+            
             this->clqueue.enqueueReadBuffer(buffer_frame,CL_TRUE,0,sizeof(cl_Pixel_Texture_Out) * this->window_width * this->window_height,this->h_outTiles);
-            this->clqueue.enqueueReadBuffer(buffer_image,CL_TRUE,0,sizeof(RGB)*this->window_width * this->window_height,im);
+            this->clqueue.enqueueReadBuffer(buffer_image,CL_TRUE,0,sizeof(RGB)*this->window_width * this->window_height,this->image);
 
             glBegin(GL_POINTS);
                 // Iterate the output buffer 
@@ -986,7 +963,7 @@ class W3DGraphics {
                     int y = pos / this->window_width;
                     int x = pos - (y * this->window_width);
                     
-                    RGB pixel = im[pos];
+                    RGB pixel = image[pos];
                     
                     if (!pixel.hasData){
                         continue;
@@ -996,13 +973,9 @@ class W3DGraphics {
                     glVertex2i(x,y);
                 }
             glEnd();
-            
     
-            std::free(im);
-
             // Update frames 
             this->framesRendered++; 
-
           
             std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             long seconds = std::chrono::duration_cast<std::chrono::seconds>(timeNow - timeBegin).count();
@@ -1095,6 +1068,31 @@ bool W3DGraphics::combineMeshesIntoScene(){
 
     return false;
             
+}
+
+/// @brief This method will write static values to OpenCL buffers. This values are those that do not change when executing
+void W3DGraphics::writeOpenCLStaticBuffers(){
+    // Already Written - exit
+    if (this->staticBuffersWritten){
+        return;
+    }
+
+    // Values 
+    cl_Matrix4x4 projectionMatrix =  cl_Make_Projection(
+                this->window_height/this->window_width,
+                90.0f,
+                1000.f,
+                0.1f);
+
+    // Write Buffers
+    this->clqueue.enqueueWriteBuffer(this->buffer_projection_matrix,CL_TRUE,0,sizeof(cl_Matrix4x4),&projectionMatrix);
+    this->clqueue.enqueueWriteBuffer(this->buffer_window_width,CL_TRUE,0,sizeof(int),&this->window_width);
+    this->clqueue.enqueueWriteBuffer(this->buffer_window_height,CL_TRUE,0,sizeof(int),&this->window_height);
+    this->clqueue.enqueueWriteBuffer(this->buffer_grid_details,CL_TRUE,0,sizeof(cl_GridDetails),&this->gridDetails);
+    this->clqueue.enqueueWriteBuffer(this->buffer_sub_grid_raster_max,CL_TRUE,0,sizeof(int),&this->subGridRasterMax);
+
+    // Set As Written 
+    this->staticBuffersWritten = true;
 }
 
 /// @brief Test Application

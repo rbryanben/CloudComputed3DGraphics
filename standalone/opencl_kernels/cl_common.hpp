@@ -36,7 +36,7 @@ typedef struct cl_TextureDetail{
 // Matrix4x4 
 // 4x4 Matrix
 struct cl_Matrix4x4{
-    float m[4][4];
+    float m[4][4] = {0.0f};
 };
 
 /* Pixel Texture  Out */
