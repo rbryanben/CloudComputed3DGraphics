@@ -1,3 +1,6 @@
+#pragma once
+
+// Includes 
 #include "GL/freeglut.h"
 #include "GL/gl.h"
 #include <string.h>
